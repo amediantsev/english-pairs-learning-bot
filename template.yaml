@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Runtime: python3.9
+
+Parameters:
+  botToken:
+    Type: String
+
+Resources:
+  # Lambdas
+  UpdatesHandler:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: src
+      Handler: messages.handler
+      Events:
+        ProcessMessage:
+          Type: Api
+          Properties:
+            Path: /messages
+            Method: post
+      Environment:
+        Variables:
+          TELEGRAM_TOKEN: !Sub "${botToken}"
+          TABLE_NAME:
+            Ref: MainTable
+      Policies:
+        - Statement:
+            - Sid: DynamodbPolicy
+              Effect: Allow
+              Action:
+                - "dynamodb:GetItem"
+                - "dynamodb:PutItem"
+                - "dynamodb:Query"
+                - "dynamodb:UpdateItem"
+                - "dynamodb:DescribeTable"
+                - "dynamodb:DeleteItem"
+              Resource: !GetAtt MainTable.Arn
+
+  # DynamoDB
+  MainTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
