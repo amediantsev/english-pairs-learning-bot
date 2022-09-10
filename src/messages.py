@@ -60,8 +60,13 @@ def get_unfinished_pair_deleting(user_chat_id):
 
 
 def delete_unfinished_operations(user_chat_id):
-    table.delete_item(Key={"pk": f"USER#{user_chat_id}", "sk": "TRANSLATION_PAIR_CREATING"})
-    table.delete_item(Key={"pk": f"USER#{user_chat_id}", "sk": "TRANSLATION_PAIR_DELETING"})
+    deleted_creating = table.delete_item(
+        Key={"pk": f"USER#{user_chat_id}", "sk": "TRANSLATION_PAIR_CREATING"}, ReturnValues="ALL_OLD"
+    )
+    deleted_deleting = table.delete_item(
+        Key={"pk": f"USER#{user_chat_id}", "sk": "TRANSLATION_PAIR_DELETING"}, ReturnValues="ALL_OLD"
+    )
+    return deleted_creating.get("Attributes"), deleted_deleting.get("Attributes")
 
 
 def handler(event, _):
@@ -83,12 +88,14 @@ def handler(event, _):
             bot.sendMessage(chat_id=user_chat_id, text="Please, finish current operation or cancel it (/cancel)")
             return {"statusCode": 200}
 
-        bot.sendMessage(chat_id=user_chat_id, text=f"{ASK_FOR_ENGLISH} from the pair you want to delete.")
+        bot.sendMessage(chat_id=user_chat_id, text=f"{ASK_FOR_ENGLISH} from the pair you want to delete")
     elif text.startswith("/list_pairs"):
         bot.sendMessage(chat_id=user_chat_id, text=list_translation_pairs_text(user_chat_id))
     elif text.startswith("/cancel"):
-        delete_unfinished_operations(user_chat_id)
-        bot.sendMessage(chat_id=user_chat_id, text="")
+        if any(delete_unfinished_operations(user_chat_id)):
+            bot.sendMessage(chat_id=user_chat_id, text="Operation is canceled")
+        else:
+            bot.sendMessage(chat_id=user_chat_id, text="There is no active operations")
     else:
         # Text from customer for some operation
         if unfinished_pair_creating := get_unfinished_pair_creating(user_chat_id):
