@@ -60,8 +60,8 @@ def get_unfinished_pair_deleting(user_chat_id):
 
 
 def delete_unfinished_operations(user_chat_id):
-    table.delete_item(Key={"pk": f"USER#{user_chat_id}", "sk": "TRANSLATION_PAIR_CREATING", "user_id": user_chat_id})
-    table.delete_item(Key={"pk": f"USER#{user_chat_id}", "sk": "TRANSLATION_PAIR_DELETING", "user_id": user_chat_id})
+    table.delete_item(Key={"pk": f"USER#{user_chat_id}", "sk": "TRANSLATION_PAIR_CREATING"})
+    table.delete_item(Key={"pk": f"USER#{user_chat_id}", "sk": "TRANSLATION_PAIR_DELETING"})
 
 
 def handler(event, _):
