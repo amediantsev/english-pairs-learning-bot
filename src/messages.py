@@ -1,6 +1,7 @@
 import json
 import os
 from http import HTTPStatus
+from contextlib import suppress
 
 from aws_lambda_powertools import Logger
 from boto3 import resource, client
@@ -149,13 +150,14 @@ def handler(event, _):
                 {"Arn": POLLING_LAMBDA_ARN, "Id": "POLLING_LAMBDA", "Input": json.dumps({"user_chat_id": user_chat_id})}
             ],
         )
-        lambda_client.add_permission(
-            FunctionName=POLLING_LAMBDA_ARN,
-            StatementId=f"PERIODIC_{user_chat_id}_POLLING_PERMISSION",
-            Action="lambda:InvokeFunction",
-            Principal="events.amazonaws.com",
-            SourceArn=rule_arn,
-        )
+        with suppress(lambda_client.exceptions.ResourceConflictException):
+            lambda_client.add_permission(
+                FunctionName=POLLING_LAMBDA_ARN,
+                StatementId=f"PERIODIC_{user_chat_id}_POLLING_PERMISSION",
+                Action="lambda:InvokeFunction",
+                Principal="events.amazonaws.com",
+                SourceArn=rule_arn,
+            )
         bot.sendMessage(chat_id=user_chat_id, text=f"Okay, I will poll you every {time_amount} {time_units}")
     else:
         # Text from customer for some operation
