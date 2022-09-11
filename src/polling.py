@@ -23,17 +23,21 @@ def handler(event, _):
     translation_pairs = query_result["Items"]
     pairs_count = query_result["Count"]
 
+    question_key, answers_key = "english_text", "native_text"
+    if random.choice([True, False]):
+        question_key, answers_key = answers_key, question_key
+
     pair_to_poll = random.choice(translation_pairs)
-    correct_option = pair_to_poll["native_text"]
+    correct_option = pair_to_poll[answers_key]
     options = {correct_option}
     options_limit = pairs_count if pairs_count < 4 else 4
     while len(options) < options_limit:
-        options.add(random.choice(translation_pairs)["native_text"])
+        options.add(random.choice(translation_pairs)[answers_key])
 
     options = list(options)
     bot.sendPoll(
         chat_id=user_chat_id,
-        question=pair_to_poll["english_text"],
+        question=pair_to_poll[question_key],
         options=options,
         type=telegram.Poll.QUIZ,
         correct_option_id=options.index(correct_option),
