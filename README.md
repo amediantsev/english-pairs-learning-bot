@@ -1,2 +1,2 @@
 Serverless Telegram Bot for regular learning of english words and phrases.
-Use Amazon Web Service to deploy the serverless architecture of bot. 
+Uses Amazon Web Services to deploy the serverless architecture of the bot. 

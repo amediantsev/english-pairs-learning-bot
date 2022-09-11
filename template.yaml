@@ -4,6 +4,11 @@ Transform: AWS::Serverless-2016-10-31
 Globals:
   Function:
     Runtime: python3.9
+    Environment:
+      Variables:
+        TELEGRAM_TOKEN: !Sub "${botToken}"
+        TABLE_NAME:
+          Ref: MainTable
 
 Parameters:
   botToken:
@@ -11,6 +16,19 @@ Parameters:
 
 Resources:
   # Lambdas
+  SendPoll:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src
+      Handler: polling.handler
+      Policies:
+        - Statement:
+            - Sid: DynamodbPolicy
+              Effect: Allow
+              Action:
+                - "dynamodb:Query"
+                - "dynamodb:DescribeTable"
+              Resource: !GetAtt MainTable.Arn
   UpdatesHandler:
     Type: AWS::Serverless::Function 
     Properties:
@@ -24,9 +42,7 @@ Resources:
             Method: post
       Environment:
         Variables:
-          TELEGRAM_TOKEN: !Sub "${botToken}"
-          TABLE_NAME:
-            Ref: MainTable
+          POLLING_LAMBDA_ARN: !GetAtt SendPoll.Arn
       Policies:
         - Statement:
             - Sid: DynamodbPolicy
@@ -39,6 +55,19 @@ Resources:
                 - "dynamodb:DescribeTable"
                 - "dynamodb:DeleteItem"
               Resource: !GetAtt MainTable.Arn
+        - Statement:
+            - Sid: EventBridgePolicy
+              Effect: Allow
+              Action:
+                - "events:PutRule"
+                - "events:PutTargets"
+              Resource: "*"
+        - Statement:
+            - Sid: LambdaPermissionsPolicy
+              Effect: Allow
+              Action:
+                - "lambda:AddPermission"
+              Resource: !GetAtt SendPoll.Arn
 
   # DynamoDB
   MainTable:
@@ -49,9 +78,22 @@ Resources:
           AttributeType: S
         - AttributeName: sk
           AttributeType: S
+        - AttributeName: gsi1pk
+          AttributeType: S
+        - AttributeName: gsi1sk
+          AttributeType: S
       KeySchema:
         - AttributeName: pk
           KeyType: HASH
         - AttributeName: sk
           KeyType: RANGE
       BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+        - IndexName: gsi1
+          KeySchema:
+            - AttributeName: gsi1pk
+              KeyType: HASH
+            - AttributeName: gsi1sk
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
