@@ -28,6 +28,7 @@ Resources:
               Action:
                 - "dynamodb:Query"
                 - "dynamodb:DescribeTable"
+                - "dynamodb:UpdateItem"
               Resource: !GetAtt MainTable.Arn
   UpdatesHandler:
     Type: AWS::Serverless::Function 

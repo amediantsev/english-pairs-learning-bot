@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import os
 from http import HTTPStatus
@@ -63,6 +64,7 @@ def create_translation_pair(user_chat_id, english_text, native_text):
             "user_id": user_chat_id,
             "english_text": english_text,
             "native_text": native_text,
+            "timestamp": datetime.now().timestamp(),
         }
     )
     delete_current_action(user_chat_id)
