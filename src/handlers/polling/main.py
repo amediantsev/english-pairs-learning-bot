@@ -8,20 +8,13 @@ from boto3 import resource
 from telegram import Bot
 
 from decorators import handle_errors
-from aws.dynamodb import list_translation_pairs, create_poll
+from aws.dynamodb import list_translation_pairs, create_poll, increment_translation_pair_fields
 from helpers import sort_pairs_by_priority
 
 logger = Logger()
 table = resource("dynamodb").Table(os.getenv("TABLE_NAME"))
 
 bot = Bot(token=os.getenv("TELEGRAM_TOKEN"))
-
-
-def increment_pair_polls(translation_pair_item):
-    table.update_item(
-        Key={"pk": translation_pair_item["pk"], "sk": translation_pair_item["sk"]},
-        AttributeUpdates={"polls_count": {"Value": 1, "Action": "ADD"}},
-    )
 
 
 def select_pair_to_poll(translation_pairs):
@@ -58,7 +51,7 @@ def handler(event, _):
         type=telegram.Poll.QUIZ,
         correct_option_id=options.index(correct_option),
     )["poll"]["id"]
-    increment_pair_polls(pair_to_poll)
-    # create_poll(user_chat_id, poll_id)
+    create_poll(user_chat_id, poll_id, pair_to_poll["english_text"])
+    increment_translation_pair_fields(user_chat_id, pair_to_poll["english_text"], polls_count=1)
 
     return {"statusCode": HTTPStatus.OK}

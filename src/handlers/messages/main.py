@@ -28,10 +28,12 @@ def list_translation_pairs_text(user_chat_id):
     translation_pairs = dynamodb_operations.list_translation_pairs(user_chat_id)
     result_text = f"Count: {len(translation_pairs)}\n\n"
     for pair in sort_pairs_by_priority(translation_pairs):
-        pair_line = f"**{pair['english_text']}** - {pair['native_text']}"
-        pair_line_length = len(pair_line)
-        space_length = 84 - pair_line_length if pair_line_length < 80 else 1
-        result_text += f"{pair_line}{' ' * space_length}_(polled {pair.get('polls_count', 0)} times)_\n"
+        pair_line = f"**{pair['english_text']} - {pair['native_text']}**"
+        result_text += (
+            f"{pair_line}\n"
+            f"_(polled {pair.get('polls_count', 0)} times - "
+            f"{pair.get('correct_answers', 0)}✅ {pair.get('wrong_answers', 0)}⛔)_\n\n"
+        )
 
     return result_text
 
@@ -46,6 +48,15 @@ def handler(event, _):
         #     answered=True,
         #     answered_correctly=bool(poll.options[poll.correct_option_id]["voter_count"]),
         # )
+        answered_correctly = bool(poll.options[poll.correct_option_id]["voter_count"])
+        pair_stats_field_to_increment = "correct_answers" if answered_correctly else "wrong_answers"
+        saved_poll_info = dynamodb_operations.get_poll(poll.id)
+        dynamodb_operations.increment_translation_pair_fields(
+            saved_poll_info["user_chat_id"],
+            saved_poll_info["english_text"],
+            **{pair_stats_field_to_increment: 1},
+        )
+        dynamodb_operations.delete_poll(poll.id)
         return {"statusCode": HTTPStatus.OK}
 
     chat = Chat(tg_update_obj=update)

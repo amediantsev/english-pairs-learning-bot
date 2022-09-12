@@ -55,7 +55,14 @@ def create_translation_pair(user_chat_id, english_text, native_text):
     delete_current_action(user_chat_id)
 
 
-def create_poll(user_chat_id, poll_id):
+def increment_translation_pair_fields(user_chat_id, english_text, **kwargs):
+    table.update_item(
+        Key={"pk": f"USER#{user_chat_id}", "sk": f"TRANSLATION_PAIR#{english_text}"},
+        AttributeUpdates={k: {"Value": v, "Action": "ADD"} for k, v in kwargs.items()},
+    )
+
+
+def create_poll(user_chat_id, poll_id, english_text):
     table.put_item(
         Item={
             "pk": f"POLL#{poll_id}",
@@ -64,6 +71,7 @@ def create_poll(user_chat_id, poll_id):
             "gsi1pk": f"USER#{user_chat_id}",
             "gsi1sk": f"POLL#{poll_id}",
             "answered": False,
+            "english_text": english_text,
         }
     )
 
@@ -77,6 +85,10 @@ def update_poll(poll_id, **kwargs):
         Key={"pk": f"POLL#{poll_id}", "sk": f"POLL#{poll_id}"},
         AttributeUpdates={k: {"Value": v, "Action": "PUT"} for k, v in kwargs.items()},
     )
+
+
+def delete_poll(poll_id):
+    table.delete_item(Key={"pk": f"POLL#{poll_id}", "sk": f"POLL#{poll_id}"})
 
 
 def delete_translation_pair(user_chat_id, english_text):
