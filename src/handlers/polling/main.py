@@ -59,6 +59,6 @@ def handler(event, _):
         correct_option_id=options.index(correct_option),
     )["poll"]["id"]
     increment_pair_polls(pair_to_poll)
-    create_poll(user_chat_id, poll_id)
+    # create_poll(user_chat_id, poll_id)
 
     return {"statusCode": HTTPStatus.OK}

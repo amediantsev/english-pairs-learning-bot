@@ -41,11 +41,11 @@ def handler(event, _):
     logger.info(event)
     update = Update.de_json(json.loads(event.get("body")), bot)
     if poll := update.poll:
-        dynamodb_operations.update_poll(
-            poll.id,
-            answered=True,
-            answered_correctly=bool(poll.options[poll.correct_option_id]["voter_count"]),
-        )
+        # dynamodb_operations.update_poll(
+        #     poll.id,
+        #     answered=True,
+        #     answered_correctly=bool(poll.options[poll.correct_option_id]["voter_count"]),
+        # )
         return {"statusCode": HTTPStatus.OK}
 
     chat = Chat(tg_update_obj=update)
