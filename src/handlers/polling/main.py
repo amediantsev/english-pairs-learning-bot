@@ -8,9 +8,8 @@ from boto3 import resource
 from telegram import Bot
 
 from decorators import handle_errors
-from aws.dynamodb import list_translation_pairs
+from aws.dynamodb import list_translation_pairs, create_poll
 from helpers import sort_pairs_by_priority
-
 
 logger = Logger()
 table = resource("dynamodb").Table(os.getenv("TABLE_NAME"))
@@ -52,13 +51,14 @@ def handler(event, _):
     correct_option = pair_to_poll[answers_key]
     options = gather_options(translation_pairs, correct_option, answers_key)
 
-    bot.sendPoll(
+    poll_id = bot.sendPoll(
         chat_id=user_chat_id,
         question=pair_to_poll[question_key],
         options=options,
         type=telegram.Poll.QUIZ,
         correct_option_id=options.index(correct_option),
-    )
+    )["poll"]["id"]
     increment_pair_polls(pair_to_poll)
+    create_poll(user_chat_id, poll_id)
 
     return {"statusCode": HTTPStatus.OK}

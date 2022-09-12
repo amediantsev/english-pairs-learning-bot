@@ -5,13 +5,14 @@ from contextlib import suppress
 
 from aws_lambda_powertools import Logger
 from boto3 import client
+from telegram import Update
 
 from aws import dynamodb as dynamodb_operations
 from aws.events_bridge import put_event, put_targets
 from decorators import handle_errors
 from exceptions import ProcessMessageError
 from helpers import sort_pairs_by_priority
-from tg import Chat
+from tg import Chat, bot
 
 
 ASK_FOR_ENGLISH = "Send me the text of english phrase/word"
@@ -38,8 +39,16 @@ def list_translation_pairs_text(user_chat_id):
 @handle_errors
 def handler(event, _):
     logger.info(event)
-    chat = Chat(tg_request_body=json.loads(event.get("body")))
+    update = Update.de_json(json.loads(event.get("body")), bot)
+    if poll := update.poll:
+        dynamodb_operations.update_poll(
+            poll.id,
+            answered=True,
+            answered_correctly=bool(poll.options[poll.correct_option_id]["voter_count"]),
+        )
+        return {"statusCode": HTTPStatus.OK}
 
+    chat = Chat(tg_update_obj=update)
     event["user_chat_id"] = user_chat_id = chat.id
     text = chat.text
 

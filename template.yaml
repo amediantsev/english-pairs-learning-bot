@@ -41,6 +41,7 @@ Resources:
               Action:
                 - "dynamodb:Query"
                 - "dynamodb:DescribeTable"
+                - "dynamodb:PutItem"
                 - "dynamodb:UpdateItem"
               Resource: !GetAtt MainTable.Arn
   UpdatesHandler:

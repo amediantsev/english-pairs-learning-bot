@@ -17,7 +17,7 @@ def create_current_action(user_chat_id, action_type, **kwargs):
         Item={
             "pk": f"USER#{user_chat_id}",
             "sk": "CURRENT_ACTION",
-            "user_id": user_chat_id,
+            "user_chat_id": user_chat_id,
             "action_type": action_type,
             **kwargs,
         }
@@ -46,13 +46,37 @@ def create_translation_pair(user_chat_id, english_text, native_text):
         Item={
             "pk": f"USER#{user_chat_id}",
             "sk": f"TRANSLATION_PAIR#{english_text}",
-            "user_id": user_chat_id,
+            "user_chat_id": user_chat_id,
             "english_text": english_text,
             "native_text": native_text,
             "polls_count": 0,
         }
     )
     delete_current_action(user_chat_id)
+
+
+def create_poll(user_chat_id, poll_id):
+    table.put_item(
+        Item={
+            "pk": f"POLL#{poll_id}",
+            "sk": f"POLL#{poll_id}",
+            "user_chat_id": user_chat_id,
+            "gsi1pk": f"USER#{user_chat_id}",
+            "gsi1sk": f"POLL#{poll_id}",
+            "answered": False,
+        }
+    )
+
+
+def get_poll(poll_id):
+    return table.get_item(Key={"pk": f"POLL#{poll_id}", "sk": f"POLL#{poll_id}"}).get("Item")
+
+
+def update_poll(poll_id, **kwargs):
+    table.update_item(
+        Key={"pk": f"POLL#{poll_id}", "sk": f"POLL#{poll_id}"},
+        AttributeUpdates={k: {"Value": v, "Action": "PUT"} for k, v in kwargs.items()},
+    )
 
 
 def delete_translation_pair(user_chat_id, english_text):
