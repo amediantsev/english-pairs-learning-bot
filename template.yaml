@@ -15,12 +15,25 @@ Parameters:
     Type: String
 
 Resources:
-  # Lambdas
+  # Lambda Layers
+  MainLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: main_layer
+      ContentUri: src/layers/main_layer
+      CompatibleRuntimes:
+        - python3.9
+    Metadata:
+      BuildMethod: python3.9
+
+  # Lambda functions
   SendPoll:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src
-      Handler: polling.handler
+      CodeUri: src/handlers/polling
+      Handler: main.handler
+      Layers:
+        - !Ref MainLayer
       Policies:
         - Statement:
             - Sid: DynamodbPolicy
@@ -33,8 +46,10 @@ Resources:
   UpdatesHandler:
     Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: src
-      Handler: messages.handler
+      CodeUri: src/handlers/messages
+      Handler: main.handler
+      Layers:
+        - !Ref MainLayer
       Events:
         ProcessMessage:
           Type: Api

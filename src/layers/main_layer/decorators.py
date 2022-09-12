@@ -1,14 +1,12 @@
-import os
 from http import HTTPStatus
 
 from aws_lambda_powertools import Logger
-from telegram import Bot
 
 from exceptions import ProcessMessageError
+from tg import bot
 
 
 logger = Logger()
-bot = Bot(token=os.getenv("TELEGRAM_TOKEN"))
 
 
 def handle_errors(f):
