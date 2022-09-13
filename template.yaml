@@ -78,6 +78,7 @@ Resources:
               Action:
                 - "events:PutRule"
                 - "events:PutTargets"
+                - "events:DescribeRule"
               Resource: "*"
         - Statement:
             - Sid: LambdaPermissionsPolicy

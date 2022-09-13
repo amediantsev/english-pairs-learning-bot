@@ -8,10 +8,9 @@ from boto3 import client
 from telegram import Update
 
 from aws import dynamodb as dynamodb_operations
-from aws.events_bridge import put_event, put_targets
+from aws.events_bridge import put_event, put_targets, get_rule
 from decorators import handle_errors
 from exceptions import ProcessMessageError
-from helpers import sort_pairs_by_priority
 from tg import Chat, bot
 
 
@@ -41,6 +40,33 @@ def list_translation_pairs_text(user_chat_id):
     return result_text
 
 
+def get_rule_name(user_chat_id):
+    return f"{user_chat_id}_POLLING"
+
+
+def setup_polling(user_chat_id, time_amount, time_units):
+    rule_name = get_rule_name(user_chat_id)
+    rule_arn = put_event(rule_name, f"rate({time_amount} {time_units})")
+    put_targets(
+        rule_name,
+        [
+            {
+                "Arn": POLLING_LAMBDA_ARN,
+                "Id": "POLLING_LAMBDA",
+                "Input": json.dumps({"user_chat_id": user_chat_id}),
+            }
+        ],
+    )
+    with suppress(lambda_client.exceptions.ResourceConflictException):
+        lambda_client.add_permission(
+            FunctionName=POLLING_LAMBDA_ARN,
+            StatementId=f"PERIODIC_{user_chat_id}_POLLING_PERMISSION",
+            Action="lambda:InvokeFunction",
+            Principal="events.amazonaws.com",
+            SourceArn=rule_arn,
+        )
+
+
 @handle_errors
 def handler(event, _):
     logger.info(event)
@@ -61,7 +87,27 @@ def handler(event, _):
     event["user_chat_id"] = user_chat_id = chat.id
     text = chat.text.strip()
 
-    if text.startswith("/add_pair"):
+    if text.startswith("/start"):
+        chat.send_message(
+            text=(
+                "Hello buddy! This bot will help you to learn new english words and phrases.\n\n"
+                r"You should just add them here with /add\_pair command "
+                "and bot will periodically send you polls with translation options.\n"
+                "Default period is 1 hour, but you can change it to any you want "
+                r"with /set\_polling\_rate\_in\_minutes or /set\_polling\_rate\_in\_hours commands."
+                "\n\nWhen you understand that you know some of your word/phrase really well, "
+                r"you can exclude it from polls with /delete\_pair command."
+                "\n\n"
+                r"You can also see all your words/phrases with /list\_pairs command."
+                "\n\nPlease, enjoy and become smarter every day!"
+                "\nIf you found something is broken or want to suggest some improvement, "
+                "please contact me, the author, @ZenCrazyCat"
+            )
+        )
+        if not get_rule(get_rule_name(user_chat_id)):
+            setup_polling(user_chat_id, time_amount=1, time_units="hour")
+
+    elif text.startswith("/add_pair"):
         dynamodb_operations.create_current_action(user_chat_id, "TRANSLATION_PAIR_CREATING")
         chat.send_message(text=ASK_FOR_ENGLISH)
     elif text.startswith("/delete_pair"):
@@ -124,26 +170,7 @@ def handler(event, _):
             if time_amount == "1":
                 # Remove 's'
                 time_units = time_units[:-1]
-            rule_name = f"{user_chat_id}_POLLING"
-            rule_arn = put_event(rule_name, f"rate({time_amount} {time_units})")
-            put_targets(
-                rule_name,
-                [
-                    {
-                        "Arn": POLLING_LAMBDA_ARN,
-                        "Id": "POLLING_LAMBDA",
-                        "Input": json.dumps({"user_chat_id": user_chat_id}),
-                    }
-                ],
-            )
-            with suppress(lambda_client.exceptions.ResourceConflictException):
-                lambda_client.add_permission(
-                    FunctionName=POLLING_LAMBDA_ARN,
-                    StatementId=f"PERIODIC_{user_chat_id}_POLLING_PERMISSION",
-                    Action="lambda:InvokeFunction",
-                    Principal="events.amazonaws.com",
-                    SourceArn=rule_arn,
-                )
+            setup_polling(user_chat_id, time_amount, time_units)
             dynamodb_operations.delete_current_action(user_chat_id)
             chat.send_message(text=f"Okay, I will poll you every {time_amount} {time_units}")
 
