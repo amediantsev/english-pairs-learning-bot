@@ -85,6 +85,12 @@ Resources:
               Action:
                 - "lambda:AddPermission"
               Resource: !GetAtt SendPoll.Arn
+        - Statement:
+            - Sid: TranslatePermissionsPolicy
+              Effect: Allow
+              Action:
+                - "translate:TranslateText"
+              Resource: "*"
 
   # DynamoDB
   MainTable:

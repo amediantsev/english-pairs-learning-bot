@@ -16,9 +16,12 @@ table = resource("dynamodb").Table(os.getenv("TABLE_NAME"))
 
 bot = Bot(token=os.getenv("TELEGRAM_TOKEN"))
 
+POOL_SIZES_DISTRIBUTION = (5, 5, 5, 5, 5, 8, 8, 10)
+
 
 def select_pair_to_poll(translation_pairs):
-    return random.choice(sort_pairs_by_priority(translation_pairs)[:5])
+    pool_size = random.choice(POOL_SIZES_DISTRIBUTION)
+    return random.choice(sort_pairs_by_priority(translation_pairs)[:pool_size])
 
 
 def gather_options(translation_pairs, correct_option, answers_key) -> list:

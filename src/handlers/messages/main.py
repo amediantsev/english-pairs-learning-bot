@@ -16,26 +16,26 @@ from tg import Chat, bot
 
 
 ASK_FOR_ENGLISH = "Send me the text of english phrase/word"
-ASK_FOR_TRANSLATION = "Send me the translation"
 ASK_FOR_RATE = "Send me the rate of how often you want to get polls"
 POLLING_LAMBDA_ARN = os.getenv("POLLING_LAMBDA_ARN")
 
 logger = Logger()
 lambda_client = client("lambda")
+translate_client = client("translate")
 
 
 def list_translation_pairs_text(user_chat_id):
     translation_pairs = dynamodb_operations.list_translation_pairs(user_chat_id)
     result_text = f"Count: {len(translation_pairs)}\n\n"
-    for pair in sort_pairs_by_priority(translation_pairs):
-        correct_answers = pair.get('correct_answers', 0)
-        wrong_answers = pair.get('wrong_answers', 0)
+    for pair in translation_pairs:
+        correct_answers = pair.get("correct_answers", 0)
+        wrong_answers = pair.get("wrong_answers", 0)
         all_answers = correct_answers + wrong_answers
         correct_percentage = 0 if all_answers == 0 else correct_answers * 100 / all_answers
         result_text += (
             f"**{pair['english_text']} - {pair['native_text']}**\n"
             f"_(polled {pair.get('polls_count', 0)} times - "
-            f"{correct_answers}✅ {wrong_answers}⛔- {correct_percentage}%)_\n\n"
+            f"{correct_answers}✅ {wrong_answers}⛔ - {correct_percentage}%)_\n\n"
         )
 
     return result_text
@@ -46,11 +46,6 @@ def handler(event, _):
     logger.info(event)
     update = Update.de_json(json.loads(event.get("body")), bot)
     if poll := update.poll:
-        # dynamodb_operations.update_poll(
-        #     poll.id,
-        #     answered=True,
-        #     answered_correctly=bool(poll.options[poll.correct_option_id]["voter_count"]),
-        # )
         answered_correctly = bool(poll.options[poll.correct_option_id]["voter_count"])
         pair_stats_field_to_increment = "correct_answers" if answered_correctly else "wrong_answers"
         saved_poll_info = dynamodb_operations.get_poll(poll.id)
@@ -64,7 +59,7 @@ def handler(event, _):
 
     chat = Chat(tg_update_obj=update)
     event["user_chat_id"] = user_chat_id = chat.id
-    text = chat.text
+    text = chat.text.strip()
 
     if text.startswith("/add_pair"):
         dynamodb_operations.create_current_action(user_chat_id, "TRANSLATION_PAIR_CREATING")
@@ -91,11 +86,25 @@ def handler(event, _):
         current_action_type = current_action["action_type"]
         if current_action_type == "TRANSLATION_PAIR_CREATING":
             if english_text := current_action.get("english_text"):
-                dynamodb_operations.create_translation_pair(user_chat_id, english_text, native_text=text)
+                dynamodb_operations.create_translation_pair(
+                    user_chat_id,
+                    english_text,
+                    native_text=current_action.get("native_text") if text == "+" else text
+                )
                 chat.send_message(text="New translation pair is added")
             else:
-                dynamodb_operations.update_current_action(user_chat_id, english_text=text)
-                chat.send_message(text=ASK_FOR_TRANSLATION)
+                suggested_translation = translate_client.translate_text(
+                    Text=text, SourceLanguageCode="en", TargetLanguageCode="uk"
+                )["TranslatedText"]
+                dynamodb_operations.update_current_action(
+                    user_chat_id, english_text=text, native_text=suggested_translation
+                )
+                chat.send_message(
+                    text=(
+                        f"Send me the translation\n\n"
+                        f"_Suggested - _**'{suggested_translation}'**_ (send '+' to use it as translation)_"
+                    )
+                )
         elif current_action_type == "TRANSLATION_PAIR_DELETING":
             if dynamodb_operations.delete_translation_pair(user_chat_id, text):
                 chat.send_message(text="Translation pair is deleted")
