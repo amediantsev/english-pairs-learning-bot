@@ -28,11 +28,14 @@ def list_translation_pairs_text(user_chat_id):
     translation_pairs = dynamodb_operations.list_translation_pairs(user_chat_id)
     result_text = f"Count: {len(translation_pairs)}\n\n"
     for pair in sort_pairs_by_priority(translation_pairs):
-        pair_line = f"**{pair['english_text']} - {pair['native_text']}**"
+        correct_answers = pair.get('correct_answers', 0)
+        wrong_answers = pair.get('wrong_answers', 0)
+        all_answers = correct_answers + wrong_answers
+        correct_percentage = 0 if all_answers == 0 else correct_answers * 100 / all_answers
         result_text += (
-            f"{pair_line}\n"
+            f"**{pair['english_text']} - {pair['native_text']}**\n"
             f"_(polled {pair.get('polls_count', 0)} times - "
-            f"{pair.get('correct_answers', 0)}✅ {pair.get('wrong_answers', 0)}⛔)_\n\n"
+            f"{correct_answers}✅ {wrong_answers}⛔- {correct_percentage}%)_\n\n"
         )
 
     return result_text
@@ -72,7 +75,7 @@ def handler(event, _):
     elif text.startswith("/list_pairs"):
         chat.send_message(text=list_translation_pairs_text(user_chat_id))
     elif text.startswith("/cancel"):
-        if any(dynamodb_operations.delete_current_action(user_chat_id)):
+        if dynamodb_operations.delete_current_action(user_chat_id):
             chat.send_message(text="Operation is canceled")
         else:
             raise ProcessMessageError(message="There is no active operations")
