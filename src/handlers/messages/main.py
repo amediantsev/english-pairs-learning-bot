@@ -35,7 +35,7 @@ def list_translation_pairs_text(user_chat_id):
         result_text += (
             f"**{pair['english_text']} - {pair['native_text']}**\n"
             f"_(polled {pair.get('polls_count', 0)} times - "
-            f"{correct_answers}✅ {wrong_answers}⛔ - {correct_percentage}%)_\n\n"
+            f"{correct_answers}✅ {wrong_answers}⛔ - {int(round(correct_percentage, 0))}%)_\n\n"
         )
 
     return result_text
