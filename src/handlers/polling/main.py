@@ -38,7 +38,15 @@ def gather_options(translation_pairs, correct_option, answers_key) -> list:
 def handler(event, _):
     user_chat_id = event["user_chat_id"]
     translation_pairs = list_translation_pairs(user_chat_id)
-    if not translation_pairs:
+    translation_pairs_number = len(translation_pairs)
+    if translation_pairs_number < 2:
+        bot.sendMessage(
+            chat_id=user_chat_id,
+            text=(
+                "I tried to send a poll to you, but you have not enough translation pairs.\n"
+                rf"Current - {translation_pairs_number}, required - 2 or more. Please, add some with /add\_pair command"
+            )
+        )
         return {"statusCode": HTTPStatus.OK}
 
     question_key, answers_key = "english_text", "native_text"
