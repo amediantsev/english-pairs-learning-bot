@@ -5,7 +5,7 @@ from http import HTTPStatus
 import telegram
 from aws_lambda_powertools import Logger
 from boto3 import resource
-from telegram import Bot
+from telegram import Bot, ParseMode
 
 from decorators import handle_errors
 from aws.dynamodb import list_translation_pairs, create_poll, increment_translation_pair_fields
@@ -44,8 +44,14 @@ def handler(event, _):
             chat_id=user_chat_id,
             text=(
                 "I tried to send a poll to you, but you have not enough translation pairs.\n"
-                rf"Current - {translation_pairs_number}, required - 2 or more. Please, add some with /add\_pair command"
-            )
+                f"Current amount - {translation_pairs_number}, required - 2 or more. "
+                r"Please, add some with /add\_pair command"
+                "\n\n"
+                "Я намагався надіслати тобі опитування, але у тебе недостатньо пар перекладу.\n"
+                f"Поточна кількість - {translation_pairs_number}, потрібно - 2 або більше. "
+                r"Будь ласка, додай кілька слів/фраз за допомогою команди /add\_pair"
+            ),
+            parse_mode=ParseMode.MARKDOWN,
         )
         return {"statusCode": HTTPStatus.OK}
 

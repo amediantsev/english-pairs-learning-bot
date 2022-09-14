@@ -11,11 +11,40 @@ from aws import dynamodb as dynamodb_operations
 from aws.events_bridge import put_event, put_targets, get_rule
 from decorators import handle_errors
 from exceptions import ProcessMessageError
+from helpers import get_polling_rule_name
 from tg import Chat, bot
-
 
 ASK_FOR_ENGLISH = "Send me the text of english phrase/word"
 ASK_FOR_RATE = "Send me the rate of how often you want to get polls"
+HELLO_MESSAGE = (
+    "Hello buddy! This bot will help you to learn new english words and phrases.\n\n"
+    r"You should just add them here with /add\_pair command "
+    "and bot will periodically send you polls with translation options.\n"
+    "Default period is 1 hour, but you can change it to any you want "
+    r"with /set\_polling\_rate\_in\_minutes or /set\_polling\_rate\_in\_hours commands."
+    "\n\nWhen you understand that you know some of your word/phrase really well, "
+    r"you can exclude it from polls with /delete\_pair command."
+    "\n\n"
+    r"You can also see all your words/phrases with /list\_pairs command."
+    "\n\nPlease, enjoy and become smarter every day!"
+    "\nIf you found something is broken or want to suggest some improvement, "
+    "please contact me, the author, @ZenCrazyCat"
+)
+HELLO_MESSAGE_UK = (
+     "Привіт, друже! Цей бот допоможе тобі вивчити нові англійські слова та фрази.\n\n"
+     r"Тобі треба просто додати їх сюди за допомогою команди /add\_pair "
+     "і бот періодично надсилатиме тобі опитування з варіантами перекладу.\n"
+     "Періодичність за замовчуванням становить 1 годину, але ти можеш змінити її на будь-яку іншу"
+     r"за допомогою команд /set\_polling\_rate\_in\_minutes або /set\_polling\_rate\_in\_hours."
+     "\n\nКоли ти розумієш, що вже добре вивчив якесь своє слово/фразу, "
+     r"ти можеш виключити її з опитувань за допомогою команди /delete\_pair."
+     "\n\n"
+     r"Ти також можеш переглянути всі свої слова/фрази за допомогою команди /list\_pairs."
+     "\n\nБудь ласка, насолоджуйся і ставай розумнішим з кожним днем!"
+     "\nЯкщо ти виявив, що щось зламано або просто хочеш запропонувати якісь покращення, "
+     "будь ласка, зв'яжись зі мною, автором, @ZenCrazyCat"
+)
+EN_UK_SPLITTER = f"\n\n{'~' * 25}\n\n"
 POLLING_LAMBDA_ARN = os.getenv("POLLING_LAMBDA_ARN")
 
 logger = Logger()
@@ -40,12 +69,8 @@ def list_translation_pairs_text(user_chat_id):
     return result_text
 
 
-def get_rule_name(user_chat_id):
-    return f"{user_chat_id}_POLLING"
-
-
 def setup_polling(user_chat_id, time_amount, time_units):
-    rule_name = get_rule_name(user_chat_id)
+    rule_name = get_polling_rule_name(user_chat_id)
     rule_arn = put_event(rule_name, f"rate({time_amount} {time_units})")
     put_targets(
         rule_name,
@@ -88,23 +113,8 @@ def handler(event, _):
     text = chat.text.strip()
 
     if text.startswith("/start"):
-        chat.send_message(
-            text=(
-                "Hello buddy! This bot will help you to learn new english words and phrases.\n\n"
-                r"You should just add them here with /add\_pair command "
-                "and bot will periodically send you polls with translation options.\n"
-                "Default period is 1 hour, but you can change it to any you want "
-                r"with /set\_polling\_rate\_in\_minutes or /set\_polling\_rate\_in\_hours commands."
-                "\n\nWhen you understand that you know some of your word/phrase really well, "
-                r"you can exclude it from polls with /delete\_pair command."
-                "\n\n"
-                r"You can also see all your words/phrases with /list\_pairs command."
-                "\n\nPlease, enjoy and become smarter every day!"
-                "\nIf you found something is broken or want to suggest some improvement, "
-                "please contact me, the author, @ZenCrazyCat"
-            )
-        )
-        if not get_rule(get_rule_name(user_chat_id)):
+        chat.send_message(text=f"{HELLO_MESSAGE}{EN_UK_SPLITTER}{HELLO_MESSAGE_UK}")
+        if not get_rule(get_polling_rule_name(user_chat_id)):
             setup_polling(user_chat_id, time_amount=1, time_units="hour")
 
     elif text.startswith("/add_pair"):
@@ -147,8 +157,12 @@ def handler(event, _):
                 )
                 chat.send_message(
                     text=(
-                        f"Send me the translation\n\n"
-                        f"_Suggested - _**'{suggested_translation}'**_ (send '+' to use it as translation)_"
+                        "Now, send me the translation\n\n"
+                        f"_Or use the suggested one - _**'{suggested_translation}'**_ (just send '+' to use it)_"
+                        f"{EN_UK_SPLITTER}"
+                        "Тепер, надішли мені переклад\n\n"
+                        f"_Або використай запропонований - _**'{suggested_translation}'**_ "
+                        "(просто надішли '+', щоб використати його)_"
                     )
                 )
         elif current_action_type == "TRANSLATION_PAIR_DELETING":

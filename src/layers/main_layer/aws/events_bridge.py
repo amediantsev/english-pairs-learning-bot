@@ -1,3 +1,5 @@
+from contextlib import suppress
+
 from boto3 import client
 
 events_client = client("events")
@@ -16,3 +18,13 @@ def get_rule(rule_name):
         return events_client.describe_rule(Name=rule_name)
     except events_client.exceptions.ResourceNotFoundException:
         return
+
+
+def delete_rule(rule_name):
+    with suppress(events_client.exceptions.ResourceNotFoundException):
+        events_client.remove_targets(
+            Rule=rule_name,
+            Ids=[target["Id"] for target in events_client.list_targets_by_rule().get("Targets", [])]
+        )
+    with suppress(events_client.exceptions.ResourceNotFoundException):
+        events_client.delete_rule(Rule=rule_name)

@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 
 from boto3 import resource
 from boto3.dynamodb.conditions import Key
@@ -104,3 +103,13 @@ def list_translation_pairs(user_chat_id):
     return table.query(
         KeyConditionExpression=(Key("pk").eq(f"USER#{user_chat_id}") & Key("sk").begins_with("TRANSLATION_PAIR#"))
     )["Items"]
+
+
+def delete_all_user_items(user_chat_id):
+    items = [
+        *table.query(KeyConditionExpression=(Key("pk").eq(f"USER#{user_chat_id}")))["Items"],
+        *table.query(IndexName="gsi1", KeyConditionExpression=(Key("gsi1pk").eq(f"USER#{user_chat_id}")))["Items"],
+    ]
+    with table.batch_writer() as batch:
+        for item in items:
+            batch.delete_item(Key={"PK": item["pk"], "SK": item["sk"]})
