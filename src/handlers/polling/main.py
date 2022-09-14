@@ -38,6 +38,8 @@ def gather_options(translation_pairs, correct_option, answers_key) -> list:
 def handler(event, _):
     user_chat_id = event["user_chat_id"]
     translation_pairs = list_translation_pairs(user_chat_id)
+    if not translation_pairs:
+        return {"statusCode": HTTPStatus.OK}
 
     question_key, answers_key = "english_text", "native_text"
     if random.choice([True, False]):
