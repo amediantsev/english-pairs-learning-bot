@@ -22,9 +22,7 @@ def get_rule(rule_name):
 
 def delete_rule(rule_name):
     with suppress(events_client.exceptions.ResourceNotFoundException):
-        events_client.remove_targets(
-            Rule=rule_name,
-            Ids=[target["Id"] for target in events_client.list_targets_by_rule().get("Targets", [])]
-        )
+        if targets := events_client.list_targets_by_rule().get("Targets", []):
+            events_client.remove_targets(Rule=rule_name, Ids=[target["Id"] for target in targets])
     with suppress(events_client.exceptions.ResourceNotFoundException):
         events_client.delete_rule(Rule=rule_name)

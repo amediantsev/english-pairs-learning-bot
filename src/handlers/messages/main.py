@@ -31,18 +31,18 @@ HELLO_MESSAGE = (
     "please contact me, the author, @ZenCrazyCat"
 )
 HELLO_MESSAGE_UK = (
-     "Привіт, друже! Цей бот допоможе тобі вивчити нові англійські слова та фрази.\n\n"
-     r"Тобі треба просто додати їх сюди за допомогою команди /add\_pair "
-     "і бот періодично надсилатиме тобі опитування з варіантами перекладу.\n"
-     "Періодичність за замовчуванням становить 1 годину, але ти можеш змінити її на будь-яку іншу"
-     r"за допомогою команд /set\_polling\_rate\_in\_minutes або /set\_polling\_rate\_in\_hours."
-     "\n\nКоли ти розумієш, що вже добре вивчив якесь своє слово/фразу, "
-     r"ти можеш виключити її з опитувань за допомогою команди /delete\_pair."
-     "\n\n"
-     r"Ти також можеш переглянути всі свої слова/фрази за допомогою команди /list\_pairs."
-     "\n\nБудь ласка, насолоджуйся і ставай розумнішим з кожним днем!"
-     "\nЯкщо ти виявив, що щось зламано або просто хочеш запропонувати якісь покращення, "
-     "будь ласка, зв'яжись зі мною, автором, @ZenCrazyCat"
+    "Привіт, друже! Цей бот допоможе тобі вивчити нові англійські слова та фрази.\n\n"
+    r"Тобі треба просто додати їх сюди за допомогою команди /add\_pair "
+    "і бот періодично надсилатиме тобі опитування з варіантами перекладу.\n"
+    "Періодичність за замовчуванням становить 1 годину, але ти можеш змінити її на будь-яку іншу"
+    r"за допомогою команд /set\_polling\_rate\_in\_minutes або /set\_polling\_rate\_in\_hours."
+    "\n\nКоли ти розумієш, що вже добре вивчив якесь своє слово/фразу, "
+    r"ти можеш виключити її з опитувань за допомогою команди /delete\_pair."
+    "\n\n"
+    r"Ти також можеш переглянути всі свої слова/фрази за допомогою команди /list\_pairs."
+    "\n\nБудь ласка, насолоджуйся і ставай розумнішим з кожним днем!"
+    "\nЯкщо ти виявив, що щось зламано або просто хочеш запропонувати якісь покращення, "
+    "будь ласка, зв'яжись зі мною, автором, @ZenCrazyCat"
 )
 EN_UK_SPLITTER = f"\n\n{'~' * 25}\n\n"
 POLLING_LAMBDA_ARN = os.getenv("POLLING_LAMBDA_ARN")
@@ -143,9 +143,7 @@ def handler(event, _):
         if current_action_type == "TRANSLATION_PAIR_CREATING":
             if english_text := current_action.get("english_text"):
                 dynamodb_operations.create_translation_pair(
-                    user_chat_id,
-                    english_text,
-                    native_text=current_action.get("native_text") if text == "+" else text
+                    user_chat_id, english_text, native_text=current_action.get("native_text") if text == "+" else text
                 )
                 chat.send_message(text="New translation pair is added")
             else:

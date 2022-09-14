@@ -100,9 +100,12 @@ def delete_translation_pair(user_chat_id, english_text):
 
 
 def list_translation_pairs(user_chat_id):
-    return table.query(
-        KeyConditionExpression=(Key("pk").eq(f"USER#{user_chat_id}") & Key("sk").begins_with("TRANSLATION_PAIR#"))
-    )["Items"]
+    return sorted(
+        table.query(
+            KeyConditionExpression=(Key("pk").eq(f"USER#{user_chat_id}") & Key("sk").begins_with("TRANSLATION_PAIR#"))
+        )["Items"],
+        key=lambda x: x["english_text"],
+    )
 
 
 def delete_all_user_items(user_chat_id):
