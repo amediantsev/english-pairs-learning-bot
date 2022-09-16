@@ -16,7 +16,7 @@ table = resource("dynamodb").Table(os.getenv("TABLE_NAME"))
 
 bot = Bot(token=os.getenv("TELEGRAM_TOKEN"))
 
-POOL_SIZES_DISTRIBUTION = (5, 5, 5, 5, 5, 8, 8, 10)
+POOL_SIZES_DISTRIBUTION = (5, 5, 5, 5, 5, 5, 5, 8, 8, 8, 8, 12, 12, 12, 15, 15, 20)
 
 
 def select_pair_to_poll(translation_pairs):
