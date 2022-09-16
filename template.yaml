@@ -35,9 +35,6 @@ Resources:
       Handler: main.handler
       Layers:
         - !Ref MainLayer
-      Environment:
-        Variables:
-          POLLING_LAMBDA_ARN: !GetAtt SendPoll.Arn
       Policies:
         - Statement:
             - Sid: DynamodbPolicy
