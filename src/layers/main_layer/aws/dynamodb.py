@@ -115,4 +115,4 @@ def delete_all_user_items(user_chat_id):
     ]
     with table.batch_writer() as batch:
         for item in items:
-            batch.delete_item(Key={"PK": item["pk"], "SK": item["sk"]})
+            batch.delete_item(Key={"pk": item["pk"], "sk": item["sk"]})
