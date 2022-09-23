@@ -180,10 +180,30 @@ def handler(event, _):
                     message="Specified rate is incorrect. Please, try again or cancel the operation (/cancel)"
                 )
             if time_amount == "1":
-                # Remove 's'
+                # 'hours' -> 'hour', 'minutes' -> 'minute'
                 time_units = time_units[:-1]
             setup_polling(user_chat_id, time_amount, time_units)
             dynamodb_operations.delete_current_action(user_chat_id)
             chat.send_message(text=f"Okay, I will poll you every {time_amount} {time_units}")
+        elif current_action_type == "OPEN_QUESTION":
+            full_answer = current_action["answer"].lower()
+            possible_answers = {
+                full_answer, *[answer.strip().replace("(", "").replace(")", "") for answer in full_answer.split(",")]
+            }
+            logger.info(possible_answers)
+            if text.lower() in possible_answers:
+                pair_stats_field_to_increment = "correct_answers"
+                message_to_send = "Correct ✅. Good job!"
+                dynamodb_operations.delete_current_action(user_chat_id)
+            else:
+                pair_stats_field_to_increment = "wrong_answers"
+                message_to_send = "Sorry, it is wrong ⛔. Please, try again."
+
+            dynamodb_operations.increment_translation_pair_fields(
+                user_chat_id,
+                current_action["english_text"],
+                **{pair_stats_field_to_increment: 1},
+            )
+            chat.send_message(message_to_send)
 
     return {"statusCode": HTTPStatus.OK}

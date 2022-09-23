@@ -9,7 +9,7 @@ from boto3 import resource
 from telegram import Bot, ParseMode
 
 from decorators import handle_errors
-from aws.dynamodb import list_translation_pairs, create_poll, increment_translation_pair_fields
+from aws import dynamodb as dynamodb_operations
 from helpers import sort_pairs_by_priority
 
 logger = Logger()
@@ -17,7 +17,9 @@ table = resource("dynamodb").Table(os.getenv("TABLE_NAME"))
 
 bot = Bot(token=os.getenv("TELEGRAM_TOKEN"))
 
-POOL_SIZES_DISTRIBUTION = (5, 5, 5, 5, 5, 5, 5, 8, 8, 8, 8, 12, 12, 12, 15, 15, 20)
+POOL_SIZES_DISTRIBUTION = (
+    5, 5, 5, 5, 5, 5, 5, 8, 8, 8, 8, 8, 8, 12, 12, 12, 12, 12, 15, 15, 15, 15, 20, 20, 20, 25, 25, 30
+)
 
 
 def select_pair_to_poll(translation_pairs):
@@ -42,7 +44,7 @@ def handler(event, _):
         return {"statusCode": HTTPStatus.OK}
 
     user_chat_id = event["user_chat_id"]
-    translation_pairs = list_translation_pairs(user_chat_id)
+    translation_pairs = dynamodb_operations.list_translation_pairs(user_chat_id)
     translation_pairs_number = len(translation_pairs)
     if translation_pairs_number < 2:
         bot.sendMessage(
@@ -65,17 +67,45 @@ def handler(event, _):
         question_key, answers_key = answers_key, question_key
 
     pair_to_poll = select_pair_to_poll(translation_pairs)
-    correct_option = pair_to_poll[answers_key]
-    options = gather_options(translation_pairs, correct_option, answers_key)
+
+    question = pair_to_poll[question_key]
+    answer = pair_to_poll[answers_key]
+
+    if random.random() < 0.2:
+        # Open translation question.
+        current_action = dynamodb_operations.get_current_action(user_chat_id)
+        if current_action:
+            if current_action["action_type"] == "OPEN_QUESTION":
+                bot.sendMessage(
+                    chat_id=user_chat_id,
+                    text=f"Reminder: Send me the translation for _'{current_action['question']}'_",
+                    parse_mode=ParseMode.MARKDOWN,
+                )
+                return {"statusCode": HTTPStatus.OK}
+        else:
+            dynamodb_operations.create_current_action(
+                user_chat_id,
+                "OPEN_QUESTION",
+                answer=answer,
+                english_text=pair_to_poll["english_text"],
+            )
+            bot.sendMessage(
+                chat_id=user_chat_id,
+                text=f"Send me the translation for _'{question}'_",
+                parse_mode=ParseMode.MARKDOWN,
+            )
+            return {"statusCode": HTTPStatus.OK}
+
+    options = gather_options(translation_pairs, answer, answers_key)
 
     poll_id = bot.sendPoll(
         chat_id=user_chat_id,
-        question=pair_to_poll[question_key],
+        question=question,
         options=options,
         type=telegram.Poll.QUIZ,
-        correct_option_id=options.index(correct_option),
+        correct_option_id=options.index(answer),
     )["poll"]["id"]
-    create_poll(user_chat_id, poll_id, pair_to_poll["english_text"])
-    increment_translation_pair_fields(user_chat_id, pair_to_poll["english_text"], polls_count=1)
+    dynamodb_operations.create_poll(user_chat_id, poll_id, pair_to_poll["english_text"])
+    dynamodb_operations.increment_translation_pair_fields(user_chat_id, pair_to_poll["english_text"], polls_count=1)
 
     return {"statusCode": HTTPStatus.OK}

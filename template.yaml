@@ -46,6 +46,7 @@ Resources:
                 - "dynamodb:UpdateItem"
                 - "dynamodb:BatchWriteItem"
                 - "dynamodb:DeleteItem"
+                - "dynamodb:GetItem"
 #              Resource: !GetAtt MainTable.Arn
               Resource: "*"
         - Statement:
