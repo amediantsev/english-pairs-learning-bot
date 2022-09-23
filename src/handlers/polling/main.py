@@ -86,6 +86,7 @@ def handler(event, _):
             dynamodb_operations.create_current_action(
                 user_chat_id,
                 "OPEN_QUESTION",
+                question=question,
                 answer=answer,
                 english_text=pair_to_poll["english_text"],
             )
