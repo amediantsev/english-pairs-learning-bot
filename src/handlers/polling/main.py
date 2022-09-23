@@ -1,5 +1,6 @@
 import os
 import random
+from datetime import datetime
 from http import HTTPStatus
 
 import telegram
@@ -36,6 +37,10 @@ def gather_options(translation_pairs, correct_option, answers_key) -> list:
 
 @handle_errors
 def handler(event, _):
+    if datetime.now().hour < 7:
+        # We don't bother users at night
+        return {"statusCode": HTTPStatus.OK}
+
     user_chat_id = event["user_chat_id"]
     translation_pairs = list_translation_pairs(user_chat_id)
     translation_pairs_number = len(translation_pairs)
