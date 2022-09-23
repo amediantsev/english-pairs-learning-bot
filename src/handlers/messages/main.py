@@ -12,7 +12,7 @@ from aws.events_bridge import put_event, put_targets, get_rule
 from decorators import handle_errors
 from exceptions import ProcessMessageError
 from helpers import get_polling_rule_name
-from tg import Chat, bot
+from tg import Chat, bot, send_message, ADMIN_IDS
 
 ASK_FOR_ENGLISH = "Send me the text of english phrase/word"
 ASK_FOR_RATE = "Send me the rate of how often you want to get polls"
@@ -114,9 +114,9 @@ def handler(event, _):
 
     if text.startswith("/start"):
         chat.send_message(text=f"{HELLO_MESSAGE}{EN_UK_SPLITTER}{HELLO_MESSAGE_UK}")
+        dynamodb_operations.create_user(user_chat_id, chat.username)
         if not get_rule(get_polling_rule_name(user_chat_id)):
             setup_polling(user_chat_id, time_amount=1, time_units="hour")
-
     elif text.startswith("/add_pair"):
         dynamodb_operations.create_current_action(user_chat_id, "TRANSLATION_PAIR_CREATING")
         chat.send_message(text=ASK_FOR_ENGLISH)
@@ -134,6 +134,16 @@ def handler(event, _):
         time_units = text.split(" ")[0].split("/set_polling_rate_in_")[-1]
         dynamodb_operations.create_current_action(user_chat_id, "POLLING_RATE_UPDATE", time_units=time_units)
         chat.send_message(text=f"{ASK_FOR_RATE} in {time_units}")
+    elif text.startswith("/notify_users"):
+        command_and_message = text.split("/notify_users ")
+        message = command_and_message[-1]
+        if str(user_chat_id) not in ADMIN_IDS:
+            raise ProcessMessageError(message=f"Sorry, you are not admin")
+        if len(command_and_message) == 1 or not message:
+            raise ProcessMessageError(message="You didn't pass any message to users. Do it after command and space")
+
+        for user in dynamodb_operations.list_users():
+            send_message(user["user_chat_id"], text=message, disable_markdown=True)
     else:
         # Data from customer for some current operation (action)
         if not (current_action := dynamodb_operations.get_current_action(user_chat_id)):
@@ -193,11 +203,11 @@ def handler(event, _):
             logger.info(possible_answers)
             if text.lower() in possible_answers:
                 pair_stats_field_to_increment = "correct_answers"
-                message_to_send = "Correct ✅. Good job!"
+                message_to_send = "Correct ✅ Good job!"
                 dynamodb_operations.delete_current_action(user_chat_id)
             else:
                 pair_stats_field_to_increment = "wrong_answers"
-                message_to_send = "Sorry, it is wrong ⛔. Please, try again."
+                message_to_send = "Sorry, it's wrong ⛔ Please, try again"
 
             dynamodb_operations.increment_translation_pair_fields(
                 user_chat_id,

@@ -2,5 +2,5 @@ venv
 .idea
 .aws-sam
 
-telegram_bot_token.txt
+secrets.yaml
 samconfig.toml
