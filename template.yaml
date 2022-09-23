@@ -10,9 +10,12 @@ Globals:
         TELEGRAM_TOKEN: !Sub "${botToken}"
         TABLE_NAME:
           Ref: MainTable
+        ADMIN_IDS: !Sub "${AdminIds}" # Comma separated list
 
 Parameters:
   botToken:
+    Type: String
+  AdminIds:
     Type: String
 
 Resources:

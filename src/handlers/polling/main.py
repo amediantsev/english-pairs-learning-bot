@@ -6,11 +6,12 @@ from http import HTTPStatus
 import telegram
 from aws_lambda_powertools import Logger
 from boto3 import resource
-from telegram import Bot, ParseMode
+from telegram import Bot
 
 from decorators import handle_errors
 from aws import dynamodb as dynamodb_operations
 from helpers import sort_pairs_by_priority
+from tg import send_message
 
 logger = Logger()
 table = resource("dynamodb").Table(os.getenv("TABLE_NAME"))
@@ -47,8 +48,8 @@ def handler(event, _):
     translation_pairs = dynamodb_operations.list_translation_pairs(user_chat_id)
     translation_pairs_number = len(translation_pairs)
     if translation_pairs_number < 2:
-        bot.sendMessage(
-            chat_id=user_chat_id,
+        send_message(
+            user_chat_id=user_chat_id,
             text=(
                 "I tried to send a poll to you, but you have not enough translation pairs.\n"
                 f"Current amount - {translation_pairs_number}, required - 2 or more. "
@@ -58,7 +59,6 @@ def handler(event, _):
                 f"Поточна кількість - {translation_pairs_number}, потрібно - 2 або більше. "
                 r"Будь ласка, додай кілька слів/фраз за допомогою команди /add\_pair"
             ),
-            parse_mode=ParseMode.MARKDOWN,
         )
         return {"statusCode": HTTPStatus.OK}
 
@@ -76,10 +76,9 @@ def handler(event, _):
         current_action = dynamodb_operations.get_current_action(user_chat_id)
         if current_action:
             if current_action["action_type"] == "OPEN_QUESTION":
-                bot.sendMessage(
-                    chat_id=user_chat_id,
+                send_message(
+                    user_chat_id=user_chat_id,
                     text=f"Reminder: Send me the translation for _'{current_action['question']}'_",
-                    parse_mode=ParseMode.MARKDOWN,
                 )
                 return {"statusCode": HTTPStatus.OK}
         else:
@@ -90,11 +89,7 @@ def handler(event, _):
                 answer=answer,
                 english_text=pair_to_poll["english_text"],
             )
-            bot.sendMessage(
-                chat_id=user_chat_id,
-                text=f"Send me the translation for _'{question}'_",
-                parse_mode=ParseMode.MARKDOWN,
-            )
+            send_message(user_chat_id=user_chat_id, text=f"Send me the translation for _'{question}'_")
             return {"statusCode": HTTPStatus.OK}
 
     options = gather_options(translation_pairs, answer, answers_key)

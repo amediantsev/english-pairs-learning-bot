@@ -116,3 +116,24 @@ def delete_all_user_items(user_chat_id):
     with table.batch_writer() as batch:
         for item in items:
             batch.delete_item(Key={"pk": item["pk"], "sk": item["sk"]})
+
+
+def list_users():
+    return table.query(IndexName="gsi1", KeyConditionExpression=(Key("gsi1pk").eq("USER")))["Items"]
+
+
+def create_user(user_chat_id, username):
+    table.put_item(
+        Item={
+            "pk": f"USER#{user_chat_id}",
+            "sk": f"USER#{user_chat_id}",
+            "gsi1pk": "USER",
+            "gsi1sk": f"USER#{user_chat_id}",
+            "user_chat_id": user_chat_id,
+            "username": username,
+        }
+    )
+
+
+def get_user(user_chat_id):
+    return table.get_item(Key={"pk": f"USER#{user_chat_id}", "sk": f"USER#{user_chat_id}"}).get("Item")
