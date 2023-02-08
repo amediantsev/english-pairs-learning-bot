@@ -45,6 +45,7 @@ HELLO_MESSAGE_UK = (
     "будь ласка, зв'яжись зі мною, автором, @ZenCrazyCat"
 )
 EN_UK_SPLITTER = f"\n\n{'~' * 25}\n\n"
+TIP_LENGTH_MULTIPLIER = 1.7
 POLLING_LAMBDA_ARN = os.getenv("POLLING_LAMBDA_ARN")
 
 logger = Logger()
@@ -207,7 +208,12 @@ def handler(event, _):
                 dynamodb_operations.delete_current_action(user_chat_id)
             else:
                 pair_stats_field_to_increment = "wrong_answers"
-                message_to_send = "Sorry, it's wrong ⛔ Please, try again"
+                message_to_send = "Sorry, it's wrong ⛔ Please, try again. "
+                mistakes_count = int(round(float(current_action.get("translation_tip_length", 1)) * 1.7, 0))
+                message_to_send += (
+                    f"\n\nA little tip: _'{full_answer[:mistakes_count]}{'*' * (len(full_answer) - mistakes_count)}'_"
+                )
+                dynamodb_operations.update_current_action(user_chat_id, translation_tip_length=mistakes_count)
 
             dynamodb_operations.increment_translation_pair_fields(
                 user_chat_id,

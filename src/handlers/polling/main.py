@@ -21,6 +21,7 @@ bot = Bot(token=os.getenv("TELEGRAM_TOKEN"))
 POOL_SIZES_DISTRIBUTION = (
     5, 5, 5, 5, 5, 5, 5, 8, 8, 8, 8, 8, 8, 12, 12, 12, 12, 12, 15, 15, 15, 15, 20, 20, 20, 25, 25, 30
 )
+BOOLEANS = (True, False)
 
 
 def select_pair_to_poll(translation_pairs):
@@ -63,7 +64,7 @@ def handler(event, _):
         return {"statusCode": HTTPStatus.OK}
 
     question_key, answers_key = "english_text", "native_text"
-    if random.choice([True, False]):
+    if random.choice(BOOLEANS):
         question_key, answers_key = answers_key, question_key
 
     pair_to_poll = select_pair_to_poll(translation_pairs)
@@ -74,23 +75,22 @@ def handler(event, _):
     if random.random() < 0.2:
         # Open translation question.
         current_action = dynamodb_operations.get_current_action(user_chat_id)
-        if current_action:
-            if current_action["action_type"] == "OPEN_QUESTION":
-                send_message(
-                    user_chat_id=user_chat_id,
-                    text=f"Reminder: Send me the translation for _'{current_action['question']}'_",
-                )
-                return {"statusCode": HTTPStatus.OK}
-        else:
-            dynamodb_operations.create_current_action(
-                user_chat_id,
-                "OPEN_QUESTION",
-                question=question,
-                answer=answer,
-                english_text=pair_to_poll["english_text"],
+        if current_action and current_action["action_type"] == "OPEN_QUESTION":
+            send_message(
+                user_chat_id=user_chat_id,
+                text=f"Reminder: Send me the translation for _'{current_action['question']}'_",
             )
-            send_message(user_chat_id=user_chat_id, text=f"Send me the translation for _'{question}'_")
             return {"statusCode": HTTPStatus.OK}
+
+        dynamodb_operations.create_current_action(
+            user_chat_id,
+            "OPEN_QUESTION",
+            question=question,
+            answer=answer,
+            english_text=pair_to_poll["english_text"],
+        )
+        send_message(user_chat_id=user_chat_id, text=f"Send me the translation for _'{question}'_")
+        return {"statusCode": HTTPStatus.OK}
 
     options = gather_options(translation_pairs, answer, answers_key)
 
