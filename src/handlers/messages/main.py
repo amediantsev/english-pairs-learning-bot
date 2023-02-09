@@ -108,7 +108,8 @@ def handler(event, _):
         )
         dynamodb_operations.delete_poll(poll.id)
         return {"statusCode": HTTPStatus.OK}
-
+    if not update.message:
+        return {"statusCode": HTTPStatus.OK}
     chat = Chat(tg_update_obj=update)
     event["user_chat_id"] = user_chat_id = chat.id
     text = chat.text.strip()
