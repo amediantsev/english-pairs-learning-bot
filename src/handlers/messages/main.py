@@ -6,6 +6,7 @@ from contextlib import suppress
 from aws_lambda_powertools import Logger
 from boto3 import client
 from telegram import Update
+from telegram.error import Unauthorized
 
 from aws import dynamodb as dynamodb_operations
 from aws.events_bridge import put_event, put_targets, get_rule
@@ -13,6 +14,7 @@ from decorators import handle_errors
 from exceptions import ProcessMessageError
 from helpers import get_polling_rule_name
 from tg import Chat, bot, send_message, ADMIN_IDS
+from users import remove_user
 
 ASK_FOR_ENGLISH = "Send me the text of english phrase/word"
 ASK_FOR_RATE = "Send me the rate of how often you want to get polls"
@@ -144,7 +146,12 @@ def handler(event, _):
             raise ProcessMessageError(message="You didn't pass any message to users. Do it after command and space")
 
         for user in dynamodb_operations.list_users():
-            send_message(user["user_chat_id"], text=message, disable_markdown=True)
+            logger.info(f"user {user}")
+            try:
+                send_message(str(user["user_chat_id"]), text=message, disable_markdown=True)
+            except Unauthorized:
+                logger.error(f"user {user_chat_id} has blocked bot")
+                remove_user(str(user["user_chat_id"]), POLLING_LAMBDA_ARN)
     else:
         # Data from customer for some current operation (action)
         if not (current_action := dynamodb_operations.get_current_action(user_chat_id)):

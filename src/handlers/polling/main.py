@@ -41,7 +41,7 @@ def gather_options(translation_pairs, correct_option, answers_key) -> list:
 
 @handle_errors
 def handler(event, _):
-    if datetime.now().hour < 7:
+    if 22 < datetime.now().hour or datetime.now().hour < 7:
         # We don't bother users at night
         return {"statusCode": HTTPStatus.OK}
 
