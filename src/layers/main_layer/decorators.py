@@ -24,6 +24,7 @@ def handle_errors(f):
                 send_message(user_chat_id=user_chat_id, text=e.message)
         except Unauthorized:
             if user_chat_id := event.get("user_chat_id"):
+                logger.error(f"user {user_chat_id} has blocked bot")
                 remove_user(user_chat_id, POLLING_LAMBDA_ARN or context.invoked_function_arn)
         except Exception:
             logger.exception("Unexpected error.")
