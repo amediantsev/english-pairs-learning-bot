@@ -115,7 +115,6 @@ def handler(event, _):
     chat = Chat(tg_update_obj=update)
     event["user_chat_id"] = user_chat_id = chat.id
     text = chat.text.strip()
-
     if text.startswith("/start"):
         chat.send_message(text=f"{HELLO_MESSAGE}{EN_UK_SPLITTER}{HELLO_MESSAGE_UK}")
         dynamodb_operations.create_user(user_chat_id, chat.username)
@@ -158,6 +157,7 @@ def handler(event, _):
         if not (current_action := dynamodb_operations.get_current_action(user_chat_id)):
             return {"statusCode": HTTPStatus.OK}
 
+        text = text.replace("*", "").replace("_", "").replace("`", "")
         current_action_type = current_action["action_type"]
         if current_action_type == "TRANSLATION_PAIR_CREATING":
             if english_text := current_action.get("english_text"):
@@ -207,7 +207,8 @@ def handler(event, _):
         elif current_action_type == "OPEN_QUESTION":
             full_answer = current_action["answer"].lower()
             possible_answers = {
-                full_answer, *[answer.strip().replace("(", "").replace(")", "") for answer in full_answer.split(",")]
+                full_answer,
+                *[answer.strip().replace("(", "").replace(")", "") for answer in full_answer.split(",")],
             }
             logger.info(possible_answers)
             if text.lower() in possible_answers:

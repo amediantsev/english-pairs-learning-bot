@@ -19,7 +19,13 @@ table = resource("dynamodb").Table(os.getenv("TABLE_NAME"))
 bot = Bot(token=os.getenv("TELEGRAM_TOKEN"))
 
 POOL_SIZES_DISTRIBUTION = (
-    5, 5, 5, 5, 5, 5, 5, 8, 8, 8, 8, 8, 8, 12, 12, 12, 12, 12, 15, 15, 15, 15, 20, 20, 20, 25, 25, 30
+    *(5 for _ in range(7)),
+    *(8 for _ in range(6)),
+    *(12 for _ in range(5)),
+    *(15 for _ in range(4)),
+    *(20 for _ in range(3)),
+    *(25 for _ in range(3)),
+    *(30 for _ in range(1)),
 )
 BOOLEANS = (True, False)
 
