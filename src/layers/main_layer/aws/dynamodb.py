@@ -154,4 +154,4 @@ def create_user(user_chat_id, username):
 
 
 def get_user(user_chat_id):
-    return table.get_item(Key={"pk": f"USER#{user_chat_id}", "sk": f"USER#{user_chat_id}"}).get("Item")
+    return table.get_item(Key={"pk": f"USER#{user_chat_id}", "sk": f"USER#{user_chat_id}"}).get("Item") or {}
