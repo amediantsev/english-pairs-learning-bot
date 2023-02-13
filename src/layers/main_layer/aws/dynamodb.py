@@ -1,4 +1,5 @@
 import os
+import time
 
 from boto3 import resource
 from boto3.dynamodb.conditions import Key
@@ -49,6 +50,7 @@ def create_translation_pair(user_chat_id, english_text, native_text):
             "english_text": english_text,
             "native_text": native_text,
             "polls_count": 0,
+            "gsi1pk": "TRANSLATION_PAIR",
         }
     )
     delete_current_action(user_chat_id)
@@ -109,13 +111,29 @@ def list_translation_pairs(user_chat_id):
 
 
 def delete_all_user_items(user_chat_id):
+    deleted_translations_batch = []
     items = [
         *table.query(KeyConditionExpression=(Key("pk").eq(f"USER#{user_chat_id}")))["Items"],
         *table.query(IndexName="gsi1", KeyConditionExpression=(Key("gsi1pk").eq(f"USER#{user_chat_id}")))["Items"],
     ]
     with table.batch_writer() as batch:
         for item in items:
+            if "sk".startswith("DELETED_TRANSLATIONS_BATCH#"):
+                continue
+            if "sk".startswith("TRANSLATION_PAIR#"):
+                deleted_translations_batch.append(item)
             batch.delete_item(Key={"pk": item["pk"], "sk": item["sk"]})
+
+    if deleted_translations_batch:
+        table.put_item(
+            Item={
+                "pk": f"USER#{user_chat_id}",
+                "sk": f"DELETED_TRANSLATIONS_BATCH#{time.time()}",
+                "user_chat_id": user_chat_id,
+                "gsi1pk": "DELETED_TRANSLATIONS_BATCH",
+                "deleted_translations_batch": items
+            }
+        )
 
 
 def list_users():
