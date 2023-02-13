@@ -23,17 +23,18 @@ def handle_errors(f):
             if e.message and (user_chat_id := event.get("user_chat_id")):
                 send_message(user_chat_id=user_chat_id, text=e.message)
         except Unauthorized:
-            if user_chat_id := event.get("user_chat_id"):
+            user_chat_id = event.get("user_chat_id")
+            if user_chat_id and user_chat_id not in ADMIN_IDS:
                 logger.error(f"user {user_chat_id} has blocked bot")
                 remove_user(user_chat_id, POLLING_LAMBDA_ARN or context.invoked_function_arn)
         except Exception:
             logger.exception("Unexpected error.")
             if user_chat_id := event.get("user_chat_id"):
-                send_message(user_chat_id=user_chat_id, text="Sorry, something went wrong")
+                send_message(user_chat_id=user_chat_id, text="Sorry, something went wrong.")
 
             send_message(
                 user_chat_id=ADMIN_IDS[0],
-                text=(f"Error happened for @{get_user(user_chat_id).get('username')}:\n\n" f"{traceback.format_exc()}"),
+                text=f"Error happened for @{get_user(user_chat_id).get('username')}:\n\n" f"{traceback.format_exc()}",
                 disable_markdown=True,
             )
 
