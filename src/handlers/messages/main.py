@@ -207,7 +207,8 @@ def handler(event, _):
         elif current_action_type == "OPEN_QUESTION":
             full_answer = current_action["answer"].lower()
             possible_answers = {
-                full_answer, *[answer.strip().replace("(", "").replace(")", "") for answer in full_answer.split(",")]
+                full_answer,
+                *[answer.strip().replace("(", "").replace(")", "") for answer in full_answer.split(",")],
             }
             logger.info(possible_answers)
             if text.lower() in possible_answers:

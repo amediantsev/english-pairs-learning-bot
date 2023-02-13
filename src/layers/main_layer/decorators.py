@@ -33,10 +33,7 @@ def handle_errors(f):
 
             send_message(
                 user_chat_id=ADMIN_IDS[0],
-                text=(
-                    f"Error happened for @{get_user(user_chat_id).get('username')}:\n\n"
-                    f"{traceback.format_exc()}"
-                ),
+                text=(f"Error happened for @{get_user(user_chat_id).get('username')}:\n\n" f"{traceback.format_exc()}"),
                 disable_markdown=True,
             )
 

@@ -131,7 +131,7 @@ def delete_all_user_items(user_chat_id):
                 "sk": f"DELETED_TRANSLATIONS_BATCH#{time.time()}",
                 "user_chat_id": user_chat_id,
                 "gsi1pk": "DELETED_TRANSLATIONS_BATCH",
-                "deleted_translations_batch": items
+                "deleted_translations_batch": items,
             }
         )
 
