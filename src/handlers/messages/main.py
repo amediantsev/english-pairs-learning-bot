@@ -3,6 +3,7 @@ import os
 from http import HTTPStatus
 from contextlib import suppress
 
+import telegram
 from aws_lambda_powertools import Logger
 from boto3 import client
 from telegram import Update
@@ -10,6 +11,7 @@ from telegram.error import Unauthorized
 
 from aws import dynamodb as dynamodb_operations
 from aws.events_bridge import put_event, put_targets, get_rule
+from aws.translate import translate_text
 from decorators import handle_errors
 from exceptions import ProcessMessageError
 from helpers import get_polling_rule_name
@@ -52,7 +54,6 @@ POLLING_LAMBDA_ARN = os.getenv("POLLING_LAMBDA_ARN")
 
 logger = Logger()
 lambda_client = client("lambda")
-translate_client = client("translate")
 
 
 def list_translation_pairs_text(user_chat_id):
@@ -100,16 +101,29 @@ def handler(event, _):
     logger.info(event)
     update = Update.de_json(json.loads(event.get("body")), bot)
     if poll := update.poll:
-        answered_correctly = bool(poll.options[poll.correct_option_id]["voter_count"])
-        pair_stats_field_to_increment = "correct_answers" if answered_correctly else "wrong_answers"
-        saved_poll_info = dynamodb_operations.get_poll(poll.id)
-        dynamodb_operations.increment_translation_pair_fields(
-            saved_poll_info["user_chat_id"],
-            saved_poll_info["english_text"],
-            **{pair_stats_field_to_increment: 1},
+        if poll.type == telegram.Poll.QUIZ:
+            answered_correctly = bool(poll.options[poll.correct_option_id]["voter_count"])
+            pair_stats_field_to_increment = "correct_answers" if answered_correctly else "wrong_answers"
+            saved_poll_info = dynamodb_operations.get_poll(poll.id)
+            dynamodb_operations.increment_translation_pair_fields(
+                saved_poll_info["user_chat_id"],
+                saved_poll_info["english_text"],
+                **{pair_stats_field_to_increment: 1},
+            )
+            dynamodb_operations.delete_poll(poll.id)
+            return {"statusCode": HTTPStatus.OK}
+
+        if not poll.options[0]["voter_count"]:
+            return {"statusCode": HTTPStatus.OK}
+        suggestion_info = dynamodb_operations.get_suggestion(poll.id)
+        dynamodb_operations.create_translation_pair(
+            user_chat_id=suggestion_info["user_chat_id"],
+            english_text=suggestion_info["english_text"],
+            native_text=suggestion_info["native_text"]
         )
-        dynamodb_operations.delete_poll(poll.id)
+        send_message(user_chat_id=suggestion_info["user_chat_id"], text="New translation pair is added")
         return {"statusCode": HTTPStatus.OK}
+
     if not update.message:
         return {"statusCode": HTTPStatus.OK}
     chat = Chat(tg_update_obj=update)
@@ -146,7 +160,6 @@ def handler(event, _):
             raise ProcessMessageError(message="You didn't pass any message to users. Do it after command and space")
 
         for user in dynamodb_operations.list_users():
-            logger.info(f"user {user}")
             try:
                 send_message(str(user["user_chat_id"]), text=message, disable_markdown=True)
             except Unauthorized:
@@ -166,9 +179,7 @@ def handler(event, _):
                 )
                 chat.send_message(text="New translation pair is added")
             else:
-                suggested_translation = translate_client.translate_text(
-                    Text=text, SourceLanguageCode="en", TargetLanguageCode="uk"
-                )["TranslatedText"]
+                suggested_translation = translate_text(text)
                 dynamodb_operations.update_current_action(
                     user_chat_id, english_text=text, native_text=suggested_translation
                 )
@@ -210,7 +221,6 @@ def handler(event, _):
                 full_answer,
                 *[answer.strip().replace("(", "").replace(")", "") for answer in full_answer.split(",")],
             }
-            logger.info(possible_answers)
             if text.lower() in possible_answers:
                 pair_stats_field_to_increment = "correct_answers"
                 message_to_send = "Correct ✅ Good job!"
