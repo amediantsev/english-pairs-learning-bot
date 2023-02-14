@@ -91,7 +91,6 @@ def create_suggestion(user_chat_id, poll_id, english_text, native_text):
     )
 
 
-
 def get_poll(poll_id):
     return table.get_item(Key={"pk": f"POLL#{poll_id}", "sk": f"POLL#{poll_id}"}).get("Item", {})
 

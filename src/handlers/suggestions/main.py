@@ -26,7 +26,7 @@ def handler(_, __):
         logger.error("API_NINJAS_API_KEY is not found in env variables.")
         return
 
-    response = requests.get(GET_RANDOM_WORD_URL, headers={'X-Api-Key': API_NINJAS_API_KEY})
+    response = requests.get(GET_RANDOM_WORD_URL, headers={"X-Api-Key": API_NINJAS_API_KEY})
     if not response.ok:
         logger.error(response.text)
         response.raise_for_status()
@@ -36,11 +36,9 @@ def handler(_, __):
     suggestion_text = SUGGESTION_TEMPLATE.format(english_text=new_word, native_text=new_word_translation)
     for user in dynamodb_operations.list_users():
         user_chat_id = str(user["user_chat_id"])
-        poll_id = bot.sendPoll(
-            chat_id=user_chat_id,
-            question=suggestion_text,
-            options=SUGGESTION_OPTIONS,
-        )["poll"]["id"]
+        poll_id = bot.sendPoll(chat_id=user_chat_id, question=suggestion_text, options=SUGGESTION_OPTIONS,)[
+            "poll"
+        ]["id"]
         dynamodb_operations.create_suggestion(user_chat_id, poll_id, new_word, new_word_translation)
 
     return

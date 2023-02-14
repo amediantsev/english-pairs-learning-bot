@@ -119,7 +119,7 @@ def handler(event, _):
         dynamodb_operations.create_translation_pair(
             user_chat_id=suggestion_info["user_chat_id"],
             english_text=suggestion_info["english_text"],
-            native_text=suggestion_info["native_text"]
+            native_text=suggestion_info["native_text"],
         )
         send_message(user_chat_id=suggestion_info["user_chat_id"], text="New translation pair is added")
         return {"statusCode": HTTPStatus.OK}
