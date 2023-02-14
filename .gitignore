@@ -6,3 +6,5 @@ secrets.yaml
 samconfig.toml
 
 local_sandbox
+
+__pycache__

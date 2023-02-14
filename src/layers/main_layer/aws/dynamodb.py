@@ -77,8 +77,26 @@ def create_poll(user_chat_id, poll_id, english_text):
     )
 
 
+def create_suggestion(user_chat_id, poll_id, english_text, native_text):
+    table.put_item(
+        Item={
+            "pk": f"SUGGESTION#{poll_id}",
+            "sk": f"SUGGESTION#{poll_id}",
+            "user_chat_id": user_chat_id,
+            "gsi1pk": f"USER#{user_chat_id}",
+            "gsi1sk": f"SUGGESTION#{poll_id}",
+            "english_text": english_text,
+            "native_text": native_text,
+        }
+    )
+
+
 def get_poll(poll_id):
-    return table.get_item(Key={"pk": f"POLL#{poll_id}", "sk": f"POLL#{poll_id}"}).get("Item")
+    return table.get_item(Key={"pk": f"POLL#{poll_id}", "sk": f"POLL#{poll_id}"}).get("Item", {})
+
+
+def get_suggestion(poll_id):
+    return table.get_item(Key={"pk": f"SUGGESTION#{poll_id}", "sk": f"SUGGESTION#{poll_id}"}).get("Item", {})
 
 
 def update_poll(poll_id, **kwargs):
