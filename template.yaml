@@ -137,8 +137,7 @@ Resources:
         SendSuggestion:
           Type: Schedule
           Properties:
-#            Schedule: cron(0 12 * * ? *)
-            Schedule: rate(5 minutes)
+            Schedule: cron(0 12 * * ? *)
             Enabled: true
       Policies:
         - Statement:
