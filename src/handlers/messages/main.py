@@ -113,15 +113,17 @@ def handler(event, _):
             dynamodb_operations.delete_poll(poll.id)
             return {"statusCode": HTTPStatus.OK}
 
-        if not poll.options[0]["voter_count"]:
-            return {"statusCode": HTTPStatus.OK}
         suggestion_info = dynamodb_operations.get_suggestion(poll.id)
-        dynamodb_operations.create_translation_pair(
-            user_chat_id=suggestion_info["user_chat_id"],
-            english_text=suggestion_info["english_text"],
-            native_text=suggestion_info["native_text"],
-        )
-        send_message(user_chat_id=suggestion_info["user_chat_id"], text="New translation pair is added")
+        suggested_pairs = suggestion_info["new_words"]
+        for index, option in enumerate(poll.options):
+            if option.voter_count:
+                dynamodb_operations.create_translation_pair(
+                    user_chat_id=suggestion_info["user_chat_id"],
+                    english_text=suggested_pairs[index][0],
+                    native_text=suggested_pairs[index][1],
+                )
+
+        send_message(user_chat_id=suggestion_info["user_chat_id"], text="New translation pairs are added")
         return {"statusCode": HTTPStatus.OK}
 
     if not update.message:

@@ -16,7 +16,7 @@ bot = Bot(token=os.getenv("TELEGRAM_TOKEN"))
 
 API_NINJAS_API_KEY = os.getenv("API_NINJAS_API_KEY")
 GET_RANDOM_WORD_URL = "https://api.api-ninjas.com/v1/randomword"
-SUGGESTION_TEMPLATE = "Hi. I have a new word for you: {english_text} - {native_text}. Do you want to add it to your vocabulary and start learning it?"
+SUGGESTION_TEXT = "Hi. I have a few new words for you. You can select the ones you would like to learn and I will add it to your vocabulary."
 SUGGESTION_OPTIONS = ["Yes, thanks", "No, thanks"]
 
 
@@ -26,19 +26,23 @@ def handler(_, __):
         logger.error("API_NINJAS_API_KEY is not found in env variables.")
         return
 
-    response = requests.get(GET_RANDOM_WORD_URL, headers={"X-Api-Key": API_NINJAS_API_KEY})
-    if not response.ok:
-        logger.error(response.text)
-        response.raise_for_status()
+    new_words = []
+    while len(new_words) < 5:
+        response = requests.get(GET_RANDOM_WORD_URL, headers={"X-Api-Key": API_NINJAS_API_KEY})
+        if not response.ok:
+            logger.error(response.text)
+            response.raise_for_status()
+        new_word = response.json()["word"].capitalize()
+        new_words.append((new_word, translate_text(new_word)))
 
-    new_word = response.json()["word"].capitalize()
-    new_word_translation = translate_text(new_word)
-    suggestion_text = SUGGESTION_TEMPLATE.format(english_text=new_word, native_text=new_word_translation)
     for user in dynamodb_operations.list_users():
         user_chat_id = str(user["user_chat_id"])
-        poll_id = bot.sendPoll(chat_id=user_chat_id, question=suggestion_text, options=SUGGESTION_OPTIONS,)[
-            "poll"
-        ]["id"]
-        dynamodb_operations.create_suggestion(user_chat_id, poll_id, new_word, new_word_translation)
+        poll_id = bot.sendPoll(
+            chat_id=user_chat_id,
+            question=SUGGESTION_TEXT,
+            options=[f"{word} - {translation}" for word, translation in new_words],
+            allows_multiple_answers=True,
+        )["poll"]["id"]
+        dynamodb_operations.create_suggestion(user_chat_id, poll_id, new_words)
 
     return
