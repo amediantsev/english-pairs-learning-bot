@@ -77,7 +77,7 @@ def create_poll(user_chat_id, poll_id, english_text):
     )
 
 
-def create_suggestion(user_chat_id, poll_id, english_text, native_text):
+def create_suggestion(user_chat_id, poll_id, new_words: list[tuple[str, str]]):
     table.put_item(
         Item={
             "pk": f"SUGGESTION#{poll_id}",
@@ -85,8 +85,7 @@ def create_suggestion(user_chat_id, poll_id, english_text, native_text):
             "user_chat_id": user_chat_id,
             "gsi1pk": f"USER#{user_chat_id}",
             "gsi1sk": f"SUGGESTION#{poll_id}",
-            "english_text": english_text,
-            "native_text": native_text,
+            "new_words": new_words,
         }
     )
 
@@ -155,6 +154,7 @@ def delete_all_user_items(user_chat_id):
 
 
 def list_users():
+
     return table.query(IndexName="gsi1", KeyConditionExpression=(Key("gsi1pk").eq("USER")))["Items"]
 
 
