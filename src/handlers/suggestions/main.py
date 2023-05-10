@@ -27,6 +27,8 @@ def handler(_, __):
 
     for user in dynamodb_operations.list_users():
         user_chat_id = str(user["user_chat_id"])
+        if user_chat_id not in os.getenv("ADMIN_IDS"):
+            continue
         new_translations = suggest_new_pairs(list_translation_pairs(user_chat_id, limit=20))
         poll_id = bot.sendPoll(
             chat_id=user_chat_id,

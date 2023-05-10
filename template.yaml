@@ -137,7 +137,7 @@ Resources:
           Type: Schedule
           Properties:
             Schedule: cron(0 12 * * ? *)
-#            Schedule: rate(3 minutes)
+#            Schedule: rate(5 minutes)
             Enabled: true
       Policies:
         - Statement:
