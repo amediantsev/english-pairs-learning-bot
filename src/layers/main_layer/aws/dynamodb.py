@@ -3,7 +3,7 @@ import os
 import time
 
 from boto3 import resource
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 
 from exceptions import ProcessMessageError
 
@@ -126,7 +126,8 @@ def list_translation_pairs(user_chat_id, limit=None):
                 table.query(
                     KeyConditionExpression=(
                         Key("pk").eq(f"USER#{user_chat_id}") & Key("sk").begins_with("TRANSLATION_PAIR#")
-                    )
+                    ),
+                    FilterExpression=Attr("active").eq(True),
                 )["Items"],
                 key=lambda x: x["created_at"],
             )
