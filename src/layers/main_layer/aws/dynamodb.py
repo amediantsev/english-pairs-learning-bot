@@ -112,7 +112,7 @@ def delete_poll(poll_id):
 
 def mark_translation_pair_inactive(user_chat_id, english_text) -> bool:
     key = {"pk": f"USER#{user_chat_id}", "sk": f"TRANSLATION_PAIR#{english_text}"}
-    if not table.get_item(Key=key)["Item"]:
+    if not table.get_item(Key=key).get("Item"):
         return False
     table.update_item(Key=key, AttributeUpdates={"active": {"Value": False, "Action": "PUT"}})
     delete_current_action(user_chat_id)
