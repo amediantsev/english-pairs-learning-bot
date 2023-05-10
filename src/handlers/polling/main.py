@@ -58,10 +58,6 @@ def handler(event, _):
         send_message(
             user_chat_id=user_chat_id,
             text=(
-                "I tried to send a poll to you, but you have not enough translation pairs.\n"
-                f"Current amount - {translation_pairs_number}, required - 2 or more. "
-                r"Please, add some with /add\_pair command"
-                "\n\n"
                 "Я намагався надіслати тобі опитування, але у тебе недостатньо пар перекладу.\n"
                 f"Поточна кількість - {translation_pairs_number}, потрібно - 2 або більше. "
                 r"Будь ласка, додай кілька слів/фраз за допомогою команди /add\_pair"

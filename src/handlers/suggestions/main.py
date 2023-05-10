@@ -14,9 +14,10 @@ table = resource("dynamodb").Table(os.getenv("TABLE_NAME"))
 
 bot = Bot(token=os.getenv("TELEGRAM_TOKEN"))
 
-SUGGESTION_TEXT = "Hi. I have a few new words for you. You can select the ones you would like to learn and I will add it to your vocabulary."
-
-SUGGESTION_OPTIONS = ["Yes, thanks", "No, thanks"]
+SUGGESTION_TEXT = (
+    "Привіт. У мене є кілька нових слів для тебе.\n"
+    "Можеш вибрати ті, які хотілось би вивчити, і я додам їх до твого словнику."
+)
 
 
 @handle_errors
