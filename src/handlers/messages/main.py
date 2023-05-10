@@ -102,9 +102,12 @@ def handler(event, _):
     update = Update.de_json(json.loads(event.get("body")), bot)
     if poll := update.poll:
         if poll.type == telegram.Poll.QUIZ:
+            saved_poll_info = dynamodb_operations.get_poll(poll.id)
+            if not saved_poll_info:
+                return {"statusCode": HTTPStatus.OK}
+
             answered_correctly = bool(poll.options[poll.correct_option_id]["voter_count"])
             pair_stats_field_to_increment = "correct_answers" if answered_correctly else "wrong_answers"
-            saved_poll_info = dynamodb_operations.get_poll(poll.id)
             dynamodb_operations.increment_translation_pair_fields(
                 saved_poll_info["user_chat_id"],
                 saved_poll_info["english_text"],
@@ -196,7 +199,7 @@ def handler(event, _):
                     )
                 )
         elif current_action_type == "TRANSLATION_PAIR_DELETING":
-            if dynamodb_operations.delete_translation_pair(user_chat_id, text):
+            if dynamodb_operations.mark_translation_pair_inactive(user_chat_id, text):
                 chat.send_message(text="Translation pair is deleted")
             else:
                 raise ProcessMessageError(

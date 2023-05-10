@@ -1,11 +1,11 @@
+import datetime
 import os
 import time
 
 from boto3 import resource
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 
 from exceptions import ProcessMessageError
-
 
 table = resource("dynamodb").Table(os.getenv("TABLE_NAME"))
 
@@ -51,6 +51,7 @@ def create_translation_pair(user_chat_id, english_text, native_text):
             "native_text": native_text,
             "polls_count": 0,
             "gsi1pk": "TRANSLATION_PAIR",
+            "created_at": datetime.datetime.now().isoformat(),
         }
     )
     delete_current_action(user_chat_id)
@@ -109,22 +110,30 @@ def delete_poll(poll_id):
     table.delete_item(Key={"pk": f"POLL#{poll_id}", "sk": f"POLL#{poll_id}"})
 
 
-def delete_translation_pair(user_chat_id, english_text):
-    deleted_pair = table.delete_item(
-        Key={"pk": f"USER#{user_chat_id}", "sk": f"TRANSLATION_PAIR#{english_text}"}, ReturnValues="ALL_OLD"
-    ).get("Attributes")
-    if deleted_pair:
-        delete_current_action(user_chat_id)
-    return deleted_pair
+def mark_translation_pair_inactive(user_chat_id, english_text) -> bool:
+    key = {"pk": f"USER#{user_chat_id}", "sk": f"TRANSLATION_PAIR#{english_text}"}
+    if not table.get_item(Key=key)["Item"]:
+        return False
+    table.update_item(Key=key, AttributeUpdates={"active": {"Value": False, "Action": "PUT"}})
+    delete_current_action(user_chat_id)
+    return True
 
 
-def list_translation_pairs(user_chat_id):
-    return sorted(
-        table.query(
-            KeyConditionExpression=(Key("pk").eq(f"USER#{user_chat_id}") & Key("sk").begins_with("TRANSLATION_PAIR#"))
-        )["Items"],
-        key=lambda x: x["english_text"],
+def list_translation_pairs(user_chat_id, limit=None):
+    response = list(
+        reversed(
+            sorted(
+                table.query(
+                    KeyConditionExpression=(
+                        Key("pk").eq(f"USER#{user_chat_id}") & Key("sk").begins_with("TRANSLATION_PAIR#")
+                    ),
+                    FilterExpression=Attr("active").eq(True),
+                )["Items"],
+                key=lambda x: x["created_at"],
+            )
+        )
     )
+    return response[:limit] if limit else response
 
 
 def delete_all_user_items(user_chat_id):
@@ -154,7 +163,6 @@ def delete_all_user_items(user_chat_id):
 
 
 def list_users():
-
     return table.query(IndexName="gsi1", KeyConditionExpression=(Key("gsi1pk").eq("USER")))["Items"]
 
 

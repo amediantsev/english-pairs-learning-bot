@@ -32,11 +32,16 @@ def handle_errors(f):
             if user_chat_id := event.get("user_chat_id"):
                 send_message(user_chat_id=user_chat_id, text="Sorry, something went wrong.")
 
-            send_message(
-                user_chat_id=ADMIN_IDS[0],
-                text=f"Error happened for @{get_user(user_chat_id).get('username')}:\n\n" f"{traceback.format_exc()}",
-                disable_markdown=True,
-            )
+            for admin_id in ADMIN_IDS:
+                send_message(
+                    user_chat_id=admin_id,
+                    text=(
+                        f"Error happened for @{get_user(user_chat_id).get('username', user_chat_id)}:"
+                        f"\n\n"
+                        f"{traceback.format_exc()}"
+                    ),
+                    disable_markdown=True,
+                )
 
         return {"statusCode": HTTPStatus.OK}
 
