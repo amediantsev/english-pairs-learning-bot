@@ -6,5 +6,9 @@ secrets.yaml
 samconfig.toml
 
 local_sandbox
+migration_scripts
 
 __pycache__
+
+
+migration_scripts/

@@ -11,18 +11,14 @@ Globals:
         TABLE_NAME:
           Ref: MainTable
         ADMIN_IDS: !Sub "${AdminIds}" # Comma separated list
-        API_NINJAS_API_KEY: !Sub "${ApiNinjasApiKey}"
-
 
 Parameters:
   botToken:
     Type: String
+  OpenApiKey:
+    Type: String
   AdminIds:
     Type: String
-  ApiNinjasApiKey:
-    Default: ""
-    Type: String
-
 
 Resources:
   # Lambda Layers
@@ -30,7 +26,7 @@ Resources:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: main_layer
-      ContentUri: src/layers/main_layer
+      ContentUri: ./src/layers/main_layer
       CompatibleRuntimes:
         - python3.9
     Metadata:
@@ -133,6 +129,9 @@ Resources:
       Handler: main.handler
       Layers:
         - !Ref MainLayer
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Sub "${OpenApiKey}"
       Events:
         SendSuggestion:
           Type: Schedule
