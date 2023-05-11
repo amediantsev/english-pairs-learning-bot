@@ -13,6 +13,8 @@ class NoCredentialsError(Exception):
 
 
 def suggest_new_pairs(learnt_pairs: List[Dict[str, str]]) -> List[tuple]:
+    if not learnt_pairs:
+        return []
     pairs_for_prompt = "".join([f'{pair["english_text"]} - {pair["native_text"]}; ' for pair in learnt_pairs])
     response = openai.ChatCompletion.create(
         model="gpt-4",
