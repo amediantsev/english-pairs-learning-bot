@@ -52,6 +52,7 @@ def create_translation_pair(user_chat_id, english_text, native_text):
             "polls_count": 0,
             "gsi1pk": "TRANSLATION_PAIR",
             "created_at": datetime.datetime.now().isoformat(),
+            "active": True,
         }
     )
     delete_current_action(user_chat_id)
