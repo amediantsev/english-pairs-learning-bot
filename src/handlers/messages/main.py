@@ -117,7 +117,7 @@ def handler(event, _):
 
         send_message(
             user_chat_id=suggestion_info["user_chat_id"],
-            text="Нову фразу/слово додано! Буду радий допомогти тобі вивчити це.",
+            text="Нові фрази/слова додано! Буду радий допомогти тобі вивчити їх.",
         )
         return {"statusCode": HTTPStatus.OK}
 

@@ -1,4 +1,5 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 from aws_lambda_powertools import Logger
 from boto3 import resource
@@ -20,6 +21,16 @@ SUGGESTION_TEXT = (
 )
 
 
+def send_suggestion(user_chat_id, new_translations):
+    poll_id = bot.sendPoll(
+        chat_id=user_chat_id,
+        question=SUGGESTION_TEXT,
+        options=[f"{word} - {translation}" for word, translation in new_translations],
+        allows_multiple_answers=True,
+    )["poll"]["id"]
+    dynamodb_operations.create_suggestion(user_chat_id, poll_id, new_translations)
+
+
 @handle_errors
 def handler(_, __):
     if not OPENAI_API_KEY:
@@ -28,15 +39,13 @@ def handler(_, __):
 
     for user in dynamodb_operations.list_users():
         user_chat_id = str(user["user_chat_id"])
+        print("Making Suggestion for user ", user_chat_id)
         new_translations = suggest_new_pairs(list_translation_pairs(user_chat_id, limit=20))
         if not new_translations:
-            return
-        poll_id = bot.sendPoll(
-            chat_id=user_chat_id,
-            question=SUGGESTION_TEXT,
-            options=[f"{word} - {translation}" for word, translation in new_translations],
-            allows_multiple_answers=True,
-        )["poll"]["id"]
-        dynamodb_operations.create_suggestion(user_chat_id, poll_id, new_translations)
+            print("He has no translation pairs")
+            continue
+        print("Suggesting him these pairs: ", new_translations)
+        with ThreadPoolExecutor() as executor:
+            executor.submit(send_suggestion, user_chat_id, new_translations)
 
     return

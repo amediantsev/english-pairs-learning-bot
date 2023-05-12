@@ -127,6 +127,7 @@ Resources:
     Properties:
       CodeUri: src/handlers/suggestions
       Handler: main.handler
+      Timeout: 900
       Layers:
         - !Ref MainLayer
       Environment:
