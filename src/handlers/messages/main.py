@@ -107,6 +107,7 @@ def handler(event, _):
 
         suggestion_info = dynamodb_operations.get_suggestion(poll.id)
         suggested_pairs = suggestion_info["new_words"]
+        accepted_words = set()
         for index, option in enumerate(poll.options):
             if option.voter_count:
                 dynamodb_operations.create_translation_pair(
@@ -114,11 +115,13 @@ def handler(event, _):
                     english_text=suggested_pairs[index][0],
                     native_text=suggested_pairs[index][1],
                 )
-
-        send_message(
-            user_chat_id=suggestion_info["user_chat_id"],
-            text="Нові фрази/слова додано! Буду радий допомогти тобі вивчити їх.",
-        )
+                accepted_words.add(suggested_pairs[index][0])
+        if accepted_words:
+            dynamodb_operations.remove_declined_words(suggestion_info["user_chat_id"], accepted_words)
+            send_message(
+                user_chat_id=suggestion_info["user_chat_id"],
+                text="Нові фрази/слова додано! Буду радий допомогти тобі вивчити їх.",
+            )
         return {"statusCode": HTTPStatus.OK}
 
     if not update.message:

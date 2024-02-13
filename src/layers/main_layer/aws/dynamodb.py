@@ -1,6 +1,7 @@
 import datetime
 import os
 import time
+from typing import Iterable
 
 from boto3 import resource
 from boto3.dynamodb.conditions import Key, Attr
@@ -182,3 +183,28 @@ def create_user(user_chat_id, username):
 
 def get_user(user_chat_id):
     return table.get_item(Key={"pk": f"USER#{user_chat_id}", "sk": f"USER#{user_chat_id}"}).get("Item") or {}
+
+
+def add_declined_words(user_chat_id, declined_words: Iterable[str]):
+    table.update_item(
+        Key={"pk": f"USER#{user_chat_id}", "sk": f"DECLINED_LEARNING_WORDS"},
+        UpdateExpression="ADD declined_words :declined_words",
+        ExpressionAttributeValues={":declined_words": set(declined_words)},
+    )
+
+
+def get_declined_words(user_chat_id) -> set[str]:
+    item = table.get_item(Key={"pk": f"USER#{user_chat_id}", "sk": f"DECLINED_LEARNING_WORDS"}).get("Item")
+    return item.get("declined_words") if item else set()
+
+
+def remove_declined_words(user_chat_id, words_to_remove: Iterable[str]):
+    item = table.get_item(Key={"pk": f"USER#{user_chat_id}", "sk": f"DECLINED_LEARNING_WORDS"}).get("Item")
+    if not item:
+        return
+
+    table.update_item(
+        Key={"pk": f"USER#{user_chat_id}", "sk": f"DECLINED_LEARNING_WORDS"},
+        UpdateExpression="DELETE declined_words :declined_words",
+        ExpressionAttributeValues={":declined_words": set(words_to_remove)},
+    )

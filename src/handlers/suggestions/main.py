@@ -5,7 +5,7 @@ from aws_lambda_powertools import Logger
 from boto3 import resource
 from telegram import Bot
 
-from aws.dynamodb import list_translation_pairs
+from aws.dynamodb import list_translation_pairs, add_declined_words
 from decorators import handle_errors
 from aws import dynamodb as dynamodb_operations
 from exceptions import GptResponseFormatError
@@ -34,12 +34,13 @@ def send_suggestion(user_chat_id, new_translations):
 
 def generate_and_send_suggestion(user_chat_id, existing_pairs):
     try:
-        new_translations = suggest_new_pairs(existing_pairs)
+        new_translations = suggest_new_pairs(existing_pairs, dynamodb_operations.get_declined_words(user_chat_id))
     except GptResponseFormatError:
         logger.exception("GPT response format error")
         return
     logger.info({"user_chat_id": user_chat_id, "new_translations": new_translations})
     send_suggestion(user_chat_id, new_translations)
+    add_declined_words(user_chat_id, [pair[0] for pair in new_translations])
 
 
 @handle_errors

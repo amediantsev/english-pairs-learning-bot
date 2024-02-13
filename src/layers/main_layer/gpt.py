@@ -1,12 +1,13 @@
 import json
 import os
-from typing import List, Dict
+from typing import List, Dict, Set
 import re
 
 import backoff
 import openai
 
 from exceptions import GptResponseFormatError
+
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
@@ -15,22 +16,20 @@ NUM_LIST_REGEX = re.compile(r"^\d+\.\s*")
 
 
 @backoff.on_exception(backoff.expo, GptResponseFormatError, max_tries=3)
-def suggest_new_pairs(learnt_pairs: List[Dict[str, str]]) -> List[tuple]:
+def suggest_new_pairs(learnt_pairs: List[Dict[str, str]], declined_words: Set[str] = None) -> List[tuple]:
     if not learnt_pairs:
         return []
     pairs_for_prompt = "".join([f'{pair["english_text"]} - {pair["native_text"]}; ' for pair in learnt_pairs])
+    prompt = (
+        "Generate 5 words/phrases in English with translation to Ukrainian "
+        "in json format with array of 2 strings to learn for a person "
+        f"who last learned words/phrases: {pairs_for_prompt}. "
+    )
+    if declined_words:
+        prompt += f"Words/phrases to avoid: {'; '.join(declined_words)}."
     response = openai.ChatCompletion.create(
         model="gpt-4",
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    "Generate 5 words/phrases in English with translation to Ukrainian "
-                    "in json format with array of 2 strings to learn for a person "
-                    f"who last learned words/phrases: {pairs_for_prompt}."
-                ),
-            }
-        ],
+        messages=[{"role": "user", "content": prompt}],
         temperature=0.25,
     )
     print(response)
